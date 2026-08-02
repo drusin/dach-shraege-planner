@@ -21,6 +21,9 @@ const props = defineProps<{
   projectUpdatedAt: number
   projectList: ProjectSummary[]
   nameError: string | null
+  canUndo: boolean
+  canRedo: boolean
+  shareStatus: string | null
 }>()
 
 const emit = defineEmits<{
@@ -37,6 +40,9 @@ const emit = defineEmits<{
   copyProject: []
   openProject: [id: string]
   refreshProjectList: []
+  undo: []
+  redo: []
+  copyShareLink: []
 }>()
 
 const nameDraft = ref(props.projectName)
@@ -288,6 +294,36 @@ function onSelectedXRight(event: Event) {
           Laden
         </button>
       </div>
+      <div class="history-actions">
+        <button
+          type="button"
+          class="btn btn-history"
+          title="Rückgängig (Ctrl+Z)"
+          :disabled="!canUndo"
+          @click="emit('undo')"
+        >
+          ↶ Undo
+        </button>
+        <button
+          type="button"
+          class="btn btn-history"
+          title="Wiederholen (Ctrl+Y)"
+          :disabled="!canRedo"
+          @click="emit('redo')"
+        >
+          ↷ Redo
+        </button>
+      </div>
+      <p class="history-hint">Nur lokal · nicht in der URL</p>
+      <button
+        type="button"
+        class="btn btn-share"
+        title="Aktuellen Plan als Link in die Zwischenablage kopieren"
+        @click="emit('copyShareLink')"
+      >
+        🔗 Share-Link kopieren
+      </button>
+      <p v-if="shareStatus" class="share-status">{{ shareStatus }}</p>
     </section>
 
     <div v-if="showLoadDialog" class="modal-backdrop" @click.self="closeLoadDialog">
@@ -1140,6 +1176,53 @@ input:disabled {
 }
 .btn-project:hover {
   background: #2c3e50;
+}
+
+.history-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.btn-history {
+  flex: 1;
+  width: auto;
+  padding: 8px 6px;
+  font-size: 12px;
+  background: #5d6d7e;
+  color: #fff;
+}
+.btn-history:hover:not(:disabled) {
+  background: #4a5a6a;
+}
+.btn-history:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.history-hint {
+  margin: 6px 0 0;
+  font-size: 11px;
+  color: #888;
+}
+
+.btn-share {
+  margin-top: 10px;
+  background: #16a085;
+  color: #fff;
+  font-size: 13px;
+  padding: 9px 10px;
+}
+.btn-share:hover {
+  background: #138d75;
+}
+
+.share-status {
+  margin: 6px 0 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: #16a085;
+  text-align: center;
 }
 
 .modal-backdrop {

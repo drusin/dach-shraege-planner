@@ -12,6 +12,9 @@ const {
   projectUpdatedAt,
   projectList,
   nameError,
+  canUndo,
+  canRedo,
+  shareStatus,
   addCabinet,
   removeCabinet,
   updateCabinet,
@@ -25,6 +28,11 @@ const {
   copyProject,
   openProject,
   refreshProjectList,
+  undo,
+  redo,
+  beginCoalesce,
+  endCoalesce,
+  copyShareLink,
 } = usePlanner()
 </script>
 
@@ -50,6 +58,9 @@ const {
         :project-updated-at="projectUpdatedAt"
         :project-list="projectList"
         :name-error="nameError"
+        :can-undo="canUndo"
+        :can-redo="canRedo"
+        :share-status="shareStatus"
         @update-room-point="updateRoomPoint"
         @add-cabinet="addCabinet"
         @update-cabinet="updateCabinet"
@@ -63,12 +74,17 @@ const {
         @copy-project="copyProject"
         @open-project="openProject"
         @refresh-project-list="refreshProjectList"
+        @undo="undo"
+        @redo="redo"
+        @copy-share-link="copyShareLink"
       />
       <PlannerCanvas
         :plan="plan"
         :selected-cabinet-id="selectedCabinetId"
         @select-cabinet="selectCabinet"
         @update-cabinet="updateCabinet"
+        @begin-coalesce="beginCoalesce"
+        @end-coalesce="endCoalesce"
       />
     </main>
   </div>

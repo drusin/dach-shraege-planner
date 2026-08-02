@@ -197,6 +197,15 @@ export function writePlanToUrl(plan: Plan): void {
   }
 }
 
+/** Absoluter Share-Link nur mit Plan-Zustand (?s=…) – ohne Projektmetadaten */
+export function buildShareUrl(plan: Plan): string {
+  const token = encodePlanToToken(plan)
+  const url = new URL(window.location.href)
+  url.searchParams.set(STATE_PARAM, token)
+  url.hash = ''
+  return url.toString()
+}
+
 export function getDefaultPlan(): Plan {
   return {
     room: {

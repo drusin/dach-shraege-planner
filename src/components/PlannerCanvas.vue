@@ -12,6 +12,8 @@ const props = defineProps<{
 const emit = defineEmits<{
   selectCabinet: [id: string | null]
   updateCabinet: [id: string, patch: Partial<Omit<Cabinet, 'id'>>]
+  beginCoalesce: []
+  endCoalesce: []
 }>()
 
 const wrapRef = ref<HTMLDivElement | null>(null)
@@ -503,6 +505,7 @@ function onPointerDown(event: PointerEvent) {
     moved: false,
     pointerId: event.pointerId,
   }
+  emit('beginCoalesce')
   canvas.setPointerCapture(event.pointerId)
   cursorStyle.value = 'grabbing'
   event.preventDefault()
@@ -534,6 +537,7 @@ function endDrag(event: PointerEvent) {
     canvas.releasePointerCapture(event.pointerId)
   }
   drag = null
+  emit('endCoalesce')
   updateHoverCursor(event)
 }
 

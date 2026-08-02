@@ -183,10 +183,13 @@ function isPlacementValid(
 }
 
 /**
- * Findet die erste gültige x-Position für einen neuen Schrank.
- * - left:  scan von links nach rechts
- * - right: scan von rechts nach links
+ * Findet die extremste gültige x-Position für einen neuen Schrank.
+ * - left:  möglichst weit links (nicht „erster Kandidat“ – der wäre oft die rechte Wand)
+ * - right: möglichst weit rechts
  * - none:  übergebene x unverändert
+ *
+ * Unter der Dachschräge ist x=min oft ungültig; dann muss der Scan
+ * die linkeste *gültige* Stelle finden, statt auf maxLeft zu springen.
  *
  * Fallback wenn nichts passt: Raummitte (horizontal zentriert).
  * y bleibt unverändert (typisch 0 = Boden).
@@ -211,54 +214,31 @@ export function resolveCabinetPlacement(
   const maxX = Math.max(p0.x, pEnd.x)
   const maxLeft = maxX - width
 
-  // Kandidaten: Kanten der bestehenden Schränke + Raumgrenzen
-  const candidates = new Set<number>()
-  candidates.add(roundCm(minX))
-  candidates.add(roundCm(maxLeft))
-
-  for (const cab of cabinets) {
-    candidates.add(roundCm(cab.x + cab.width)) // direkt rechts daneben
-    candidates.add(roundCm(cab.x - width)) // direkt links daneben
-  }
-
-  // Dichter Scan als Fallback / Füllung
-  const start = snap === 'left' ? minX : maxLeft
-  const end = snap === 'left' ? maxLeft : minX
-  const dir = snap === 'left' ? 1 : -1
-
   const probe: Cabinet = {
     id: draft.id ?? '__snap_probe__',
     label: draft.label,
     width,
     height,
-    x: start,
+    x: minX,
     y,
     color: draft.color,
   }
 
-  // 1) Kandidaten in Scan-Richtung prüfen (präzises Snappen an Nachbarn)
-  const ordered = [...candidates]
-    .filter((x) => x >= minX - EPS && x <= maxLeft + EPS)
-    .sort((a, b) => (snap === 'left' ? a - b : b - a))
+  const best = findExtremeValidX(
+    probe,
+    room,
+    cabinets,
+    minX,
+    maxLeft,
+    snap,
+    step,
+  )
 
-  for (const x of ordered) {
-    probe.x = x
-    if (isPlacementValid(probe, room, cabinets)) {
-      return { x: roundCm(x), y }
-    }
+  if (best !== null) {
+    return { x: best, y }
   }
 
-  // 2) Schrittweiser Scan
-  if (maxLeft >= minX) {
-    for (let x = start; dir > 0 ? x <= end : x >= end; x += dir * step) {
-      probe.x = x
-      if (isPlacementValid(probe, room, cabinets)) {
-        return { x: roundCm(x), y }
-      }
-    }
-  }
-
-  // 3) Fallback: horizontal mittig im Raum
+  // Fallback: horizontal mittig im Raum
   const centerX = roundCm((minX + maxX) / 2 - width / 2)
   return { x: centerX, y }
 }
