@@ -22,7 +22,6 @@ const {
   updateCabinet,
   selectCabinet,
   updateRoomPoint,
-  resetPlan,
   shiftCabinets,
   setProjectName,
   clearNameError,
@@ -145,7 +144,6 @@ onUnmounted(() => {
           @remove-cabinet="removeCabinet"
           @select-cabinet="selectCabinet"
           @shift-cabinets="shiftCabinets"
-          @reset="resetPlan"
           @set-project-name="setProjectName"
           @clear-name-error="clearNameError"
           @new-project="newProject"

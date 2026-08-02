@@ -36,7 +36,6 @@ const emit = defineEmits<{
   removeCabinet: [id: string]
   selectCabinet: [id: string | null]
   shiftCabinets: [direction: 'left' | 'right']
-  reset: []
   setProjectName: [name: string]
   clearNameError: []
   newProject: []
@@ -830,15 +829,18 @@ function onSelectedXRight(event: Event) {
 
     <hr />
 
-    <div class="actions">
-      <span class="cabinet-count">
-        {{ t('cabinet.count', { count: cabinetCount }) }}
-        <template v-if="invalidCount > 0">
-          · <span class="invalid-count">{{ t('cabinet.invalid_count', { count: invalidCount }) }}</span>
-        </template>
-      </span>
-      <button class="btn btn-reset" type="button" @click="emit('reset')">{{ t('cabinet.btn_reset') }}</button>
-    </div>
+    <p class="cabinet-count">
+      {{ t('cabinet.count', { count: cabinetCount }) }}
+      <template v-if="invalidCount > 0">
+        · <span class="invalid-count">{{ t('cabinet.invalid_count', { count: invalidCount }) }}</span>
+      </template>
+    </p>
+
+    <p class="repo-link">
+      <a href="https://github.com/drusin/dach-shraege-planner" target="_blank" rel="noopener noreferrer">
+        {{ t('app.repo_link') }}
+      </a>
+    </p>
   </div>
 </template>
 
@@ -1352,23 +1354,25 @@ input:disabled {
   color: #fff;
 }
 
-.btn-reset {
-  background: #e74c3c;
-  color: #fff;
-}
-.btn-reset:hover {
-  background: #c0392b;
-}
-
-.actions {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
 .cabinet-count {
   font-size: 12px;
   color: #888;
+}
+
+.repo-link {
+  margin: 0;
+  font-size: 11px;
+  text-align: center;
+}
+
+.repo-link a {
+  color: #7f8c8d;
+  text-decoration: none;
+}
+
+.repo-link a:hover {
+  color: #2980b9;
+  text-decoration: underline;
 }
 
 /* --- Projekt --- */

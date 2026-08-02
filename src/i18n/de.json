@@ -3,6 +3,7 @@
   "app.subtitle": " · Seitenansicht",
   "app.menu": "Menü",
   "app.close": "Schließen",
+  "app.repo_link": "GitHub",
 
   "controls.title": "Einstellungen",
   "controls.close": "Schließen",
@@ -67,7 +68,6 @@
   "cabinet.delete_title": "Löschen",
   "cabinet.count": "{count} Schrank/Schränke",
   "cabinet.invalid_count": "{count} ungültig",
-  "cabinet.btn_reset": "Zurücksetzen",
 
   "cabinet_edit.title": "Schrank bearbeiten",
   "cabinet_edit.invalid_msg": "⚠ {reason}",

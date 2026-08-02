@@ -3,6 +3,7 @@
   "app.subtitle": " · Side View",
   "app.menu": "Menu",
   "app.close": "Close",
+  "app.repo_link": "GitHub",
 
   "controls.title": "Settings",
   "controls.close": "Close",
@@ -67,7 +68,6 @@
   "cabinet.delete_title": "Delete",
   "cabinet.count": "{count} cabinet(s)",
   "cabinet.invalid_count": "{count} invalid",
-  "cabinet.btn_reset": "Reset",
 
   "cabinet_edit.title": "Edit Cabinet",
   "cabinet_edit.invalid_msg": "⚠ {reason}",

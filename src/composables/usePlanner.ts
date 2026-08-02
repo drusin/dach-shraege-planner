@@ -10,7 +10,6 @@ import type {
 import { t } from '../i18n'
 import {
   buildShareUrl,
-  getDefaultPlan,
   loadSharedFromUrl,
   writePlanToUrl,
 } from '../urlState'
@@ -399,12 +398,6 @@ export function usePlanner() {
     if (value.y !== undefined) p.y = Math.max(0, finiteOr(value.y, p.y))
   }
 
-  function resetPlan() {
-    flushHistoryCommit()
-    plan.value = getDefaultPlan()
-    selectedCabinetId.value = null
-  }
-
   function shiftCabinets(direction: 'left' | 'right') {
     flushHistoryCommit()
     plan.value.cabinets = packValidCabinets(
@@ -530,7 +523,6 @@ export function usePlanner() {
     updateCabinet,
     selectCabinet,
     updateRoomPoint,
-    resetPlan,
     shiftCabinets,
     setProjectName,
     clearNameError,
