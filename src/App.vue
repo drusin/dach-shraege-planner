@@ -29,6 +29,7 @@ const {
   copyProject,
   openProject,
   refreshProjectList,
+  deleteProject,
   undo,
   redo,
   beginCoalesce,
@@ -148,6 +149,7 @@ onUnmounted(() => {
           @copy-project="copyProject"
           @open-project="openProject"
           @refresh-project-list="refreshProjectList"
+          @delete-project="deleteProject"
           @undo="undo"
           @redo="redo"
           @copy-share-link="copyShareLink"

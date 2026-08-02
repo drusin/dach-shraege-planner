@@ -20,6 +20,7 @@ import {
   bootstrapProject,
   clonePlan,
   createNewProject,
+  deleteProject as deleteProjectFromStore,
   duplicateProject,
   listProjectSummaries,
   loadProject,
@@ -481,6 +482,35 @@ export function usePlanner() {
     return true
   }
 
+  /**
+   * Löscht ein Projekt aus dem Store.
+   * Ist es das aktuell geöffnete, wird das zuletzt geänderte andere Projekt
+   * geladen – oder ein neues erstellt, wenn keins mehr übrig ist.
+   */
+  function deleteProject(id: string): boolean {
+    flushHistoryCommit()
+    flushPersist()
+    if (!deleteProjectFromStore(id)) return false
+    refreshProjectList()
+
+    if (id === projectId.value) {
+      const remaining = listProjectSummaries()
+      if (remaining.length > 0) {
+        const loaded = loadProject(remaining[0].id)
+        if (loaded) {
+          applyProject(loaded)
+          preferRoomSectionOpen.value = false
+          return true
+        }
+      }
+      // Kein Projekt mehr übrig → frisches Default-Projekt
+      const created = createNewProject(DEFAULT_PROJECT_NAME)
+      applyProject(created)
+      preferRoomSectionOpen.value = true
+    }
+    return true
+  }
+
   return {
     plan,
     cabinetCount,
@@ -508,6 +538,7 @@ export function usePlanner() {
     copyProject,
     openProject,
     refreshProjectList,
+    deleteProject,
     undo,
     redo,
     beginCoalesce,

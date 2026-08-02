@@ -275,6 +275,19 @@ export function loadProject(id: string): Project | null {
   return project
 }
 
+/** Löscht ein Projekt aus dem Store; true wenn es existierte */
+export function deleteProject(id: string): boolean {
+  const data = readStore()
+  const idx = data.projects.findIndex((p) => p.id === id)
+  if (idx < 0) return false
+  data.projects.splice(idx, 1)
+  writeStore(data)
+  if (readActiveId() === id) {
+    writeActiveId('')
+  }
+  return true
+}
+
 export interface BootstrapShare {
   plan: Plan
   /** optionaler Projektname aus dem Share-Link */

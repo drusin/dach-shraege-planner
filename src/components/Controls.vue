@@ -42,6 +42,7 @@ const emit = defineEmits<{
   copyProject: []
   openProject: [id: string]
   refreshProjectList: []
+  deleteProject: [id: string]
   undo: []
   redo: []
   copyShareLink: []
@@ -50,6 +51,8 @@ const emit = defineEmits<{
 
 const nameDraft = ref(props.projectName)
 const showLoadDialog = ref(false)
+/** Bestätigungsdialog fürs Löschen: null = geschlossen, sonst das zu löschende Projekt */
+const confirmDelete = ref<ProjectSummary | null>(null)
 /** Raum-Sektion: zu, außer bei frischem Projekt */
 const roomSectionOpen = ref(!!props.preferRoomSectionOpen)
 
@@ -107,6 +110,21 @@ function openLoadDialog() {
 
 function closeLoadDialog() {
   showLoadDialog.value = false
+  confirmDelete.value = null
+}
+
+function askDeleteProject(p: ProjectSummary) {
+  confirmDelete.value = p
+}
+
+function cancelDelete() {
+  confirmDelete.value = null
+}
+
+function confirmDeleteProject() {
+  if (!confirmDelete.value) return
+  emit('deleteProject', confirmDelete.value.id)
+  confirmDelete.value = null
 }
 
 function onLoadProject(id: string) {
@@ -420,20 +438,58 @@ function onSelectedXRight(event: Event) {
                 <span v-if="p.id === projectId"> · geöffnet</span>
               </small>
             </div>
-            <button
-              type="button"
-              class="btn btn-load-one"
-              :disabled="p.id === projectId"
-              @click="onLoadProject(p.id)"
-            >
-              {{ p.id === projectId ? 'Aktiv' : 'Öffnen' }}
-            </button>
+            <div class="project-item-actions">
+              <button
+                type="button"
+                class="btn btn-load-one"
+                :disabled="p.id === projectId"
+                @click="onLoadProject(p.id)"
+              >
+                {{ p.id === projectId ? 'Aktiv' : 'Öffnen' }}
+              </button>
+              <button
+                type="button"
+                class="btn btn-delete-one"
+                title="Projekt löschen"
+                @click="askDeleteProject(p)"
+              >
+                🗑
+              </button>
+            </div>
           </li>
         </ul>
         <p v-else class="empty">Keine gespeicherten Projekte.</p>
         <button type="button" class="btn btn-modal-close" @click="closeLoadDialog">
           Schließen
         </button>
+      </div>
+    </div>
+
+    <!-- Bestätigungsdialog: Projekt löschen -->
+    <div v-if="confirmDelete" class="modal-backdrop" @click.self="cancelDelete">
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="delete-title">
+        <div class="modal-header">
+          <h3 id="delete-title">Projekt löschen?</h3>
+          <button type="button" class="btn-icon" title="Schließen" @click="cancelDelete">
+            ✕
+          </button>
+        </div>
+        <p class="modal-hint">
+          <strong>{{ confirmDelete.name }}</strong> wird dauerhaft gelöscht.
+          Diese Aktion kann nicht rückgängig gemacht werden.
+        </p>
+        <div class="modal-actions-row">
+          <button type="button" class="btn btn-modal-close" @click="cancelDelete">
+            Abbrechen
+          </button>
+          <button
+            type="button"
+            class="btn btn-delete-confirm"
+            @click="confirmDeleteProject"
+          >
+            Löschen
+          </button>
+        </div>
       </div>
     </div>
 
@@ -1501,6 +1557,49 @@ input:disabled {
 .project-item.current {
   border-color: #2980b9;
   background: #ebf5fb;
+}
+
+.project-item-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.btn-delete-one {
+  width: auto;
+  flex-shrink: 0;
+  padding: 10px 12px;
+  font-size: 12px;
+  background: #f5b7b1;
+  color: #922b21;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+.btn-delete-one:hover {
+  background: #e74c3c;
+  color: #fff;
+}
+
+.modal-actions-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+.modal-actions-row .btn {
+  flex: 1;
+}
+
+.btn-delete-confirm {
+  background: #e74c3c;
+  color: #fff;
+}
+.btn-delete-confirm:hover {
+  background: #c0392b;
 }
 
 .project-meta {
