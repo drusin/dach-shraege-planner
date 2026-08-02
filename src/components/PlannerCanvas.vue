@@ -11,6 +11,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   selectCabinet: [id: string | null]
+  updateCabinet: [id: string, patch: Partial<Omit<Cabinet, 'id'>>]
 }>()
 
 const wrapRef = ref<HTMLDivElement | null>(null)
@@ -32,6 +33,17 @@ let view = {
   minX: 0,
   minY: 0,
 }
+
+/** Drag nur in x-Richtung */
+let drag: {
+  id: string
+  startClientX: number
+  originX: number
+  moved: boolean
+  pointerId: number
+} | null = null
+
+const cursorStyle = ref('pointer')
 
 function scheduleDraw() {
   cancelAnimationFrame(raf)
@@ -74,6 +86,24 @@ function toCanvas(p: Point2D) {
   return {
     cx: view.originX + (p.x - view.minX) * view.scale,
     cy: view.originY + view.drawH - (p.y - view.minY) * view.scale,
+  }
+}
+
+function roundCm(n: number): number {
+  return Math.round(n * 10) / 10
+}
+
+function getCabinetById(id: string): Cabinet | undefined {
+  return props.plan.cabinets.find((c) => c.id === id)
+}
+
+function canvasLocalCoords(event: PointerEvent | MouseEvent) {
+  const canvas = canvasRef.value
+  if (!canvas) return null
+  const rect = canvas.getBoundingClientRect()
+  return {
+    cx: event.clientX - rect.left,
+    cy: event.clientY - rect.top,
   }
 }
 
@@ -437,14 +467,82 @@ function shade(hex: string, amount: number): string {
   return `rgb(${r},${g},${b})`
 }
 
-function onCanvasClick(event: MouseEvent) {
+function updateHoverCursor(event: PointerEvent) {
+  if (drag) return
+  const local = canvasLocalCoords(event)
+  if (!local) {
+    cursorStyle.value = 'pointer'
+    return
+  }
+  const id = hitTestCabinet(local.cx, local.cy)
+  if (!id) {
+    cursorStyle.value = 'default'
+    return
+  }
+  const cab = getCabinetById(id)
+  cursorStyle.value = cab && !cab.fixed ? 'grab' : 'pointer'
+}
+
+function onPointerDown(event: PointerEvent) {
+  if (event.button !== 0) return
   const canvas = canvasRef.value
-  if (!canvas) return
-  const rect = canvas.getBoundingClientRect()
-  const cx = event.clientX - rect.left
-  const cy = event.clientY - rect.top
-  const id = hitTestCabinet(cx, cy)
+  const local = canvasLocalCoords(event)
+  if (!canvas || !local) return
+
+  const id = hitTestCabinet(local.cx, local.cy)
   emit('selectCabinet', id)
+
+  if (!id) return
+  const cab = getCabinetById(id)
+  if (!cab || cab.fixed) return
+
+  drag = {
+    id,
+    startClientX: event.clientX,
+    originX: cab.x,
+    moved: false,
+    pointerId: event.pointerId,
+  }
+  canvas.setPointerCapture(event.pointerId)
+  cursorStyle.value = 'grabbing'
+  event.preventDefault()
+}
+
+function onPointerMove(event: PointerEvent) {
+  if (!drag) {
+    updateHoverCursor(event)
+    return
+  }
+  if (event.pointerId !== drag.pointerId) return
+
+  const dxPx = event.clientX - drag.startClientX
+  if (!drag.moved && Math.abs(dxPx) < 2) return
+
+  drag.moved = true
+  const dxCm = view.scale === 0 ? 0 : dxPx / view.scale
+  const nextX = roundCm(drag.originX + dxCm)
+  const cab = getCabinetById(drag.id)
+  if (!cab || cab.fixed) return
+  if (cab.x === nextX) return
+  emit('updateCabinet', drag.id, { x: nextX })
+}
+
+function endDrag(event: PointerEvent) {
+  if (!drag || event.pointerId !== drag.pointerId) return
+  const canvas = canvasRef.value
+  if (canvas?.hasPointerCapture(event.pointerId)) {
+    canvas.releasePointerCapture(event.pointerId)
+  }
+  drag = null
+  updateHoverCursor(event)
+}
+
+function onPointerUp(event: PointerEvent) {
+  endDrag(event)
+}
+
+function onPointerCancel(event: PointerEvent) {
+  endDrag(event)
 }
 
 onMounted(async () => {
@@ -454,13 +552,21 @@ onMounted(async () => {
     resizeObserver = new ResizeObserver(() => scheduleDraw())
     resizeObserver.observe(wrapRef.value)
   }
-  canvasRef.value?.addEventListener('click', onCanvasClick)
+  const canvas = canvasRef.value
+  canvas?.addEventListener('pointerdown', onPointerDown)
+  canvas?.addEventListener('pointermove', onPointerMove)
+  canvas?.addEventListener('pointerup', onPointerUp)
+  canvas?.addEventListener('pointercancel', onPointerCancel)
 })
 
 onUnmounted(() => {
   cancelAnimationFrame(raf)
   resizeObserver?.disconnect()
-  canvasRef.value?.removeEventListener('click', onCanvasClick)
+  const canvas = canvasRef.value
+  canvas?.removeEventListener('pointerdown', onPointerDown)
+  canvas?.removeEventListener('pointermove', onPointerMove)
+  canvas?.removeEventListener('pointerup', onPointerUp)
+  canvas?.removeEventListener('pointercancel', onPointerCancel)
 })
 
 watch(() => props.plan, scheduleDraw, { deep: true })
@@ -469,7 +575,11 @@ watch(() => props.selectedCabinetId, scheduleDraw)
 
 <template>
   <div ref="wrapRef" class="canvas-wrap">
-    <canvas ref="canvasRef" class="planner-canvas" />
+    <canvas
+      ref="canvasRef"
+      class="planner-canvas"
+      :style="{ cursor: cursorStyle }"
+    />
   </div>
 </template>
 
@@ -490,6 +600,7 @@ watch(() => props.selectedCabinetId, scheduleDraw)
   display: block;
   width: 100%;
   height: 100%;
-  cursor: pointer;
+  touch-action: none;
+  user-select: none;
 }
 </style>

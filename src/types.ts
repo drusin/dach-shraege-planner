@@ -85,3 +85,25 @@ export interface Plan {
   room: RoomPoints
   cabinets: Cabinet[]
 }
+
+/** Standard-Name für neue Projekte */
+export const DEFAULT_PROJECT_NAME = 'neues Dachgeschoss'
+
+/** Ein gespeichertes Planungsprojekt */
+export interface Project {
+  id: string
+  name: string
+  plan: Plan
+  /** ms since epoch */
+  updatedAt: number
+  createdAt: number
+}
+
+/** Kompakte Projektliste für "Laden"-Dialoge */
+export interface ProjectSummary {
+  id: string
+  name: string
+  updatedAt: number
+  createdAt: number
+  cabinetCount: number
+}

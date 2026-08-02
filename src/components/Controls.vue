@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { reactive, ref, computed } from 'vue'
-import type { RoomPoints, RoomPointKey, Cabinet } from '../types'
+import { reactive, ref, computed, watch } from 'vue'
+import type { RoomPoints, RoomPointKey, Cabinet, ProjectSummary } from '../types'
 import { ROOM_POINT_LABELS, getVirtualCorners } from '../types'
 import {
   validateCabinet,
@@ -16,6 +16,11 @@ const props = defineProps<{
   cabinets: Cabinet[]
   cabinetCount: number
   selectedCabinetId: string | null
+  projectId: string
+  projectName: string
+  projectUpdatedAt: number
+  projectList: ProjectSummary[]
+  nameError: string | null
 }>()
 
 const emit = defineEmits<{
@@ -26,7 +31,73 @@ const emit = defineEmits<{
   selectCabinet: [id: string | null]
   shiftCabinets: [direction: 'left' | 'right']
   reset: []
+  setProjectName: [name: string]
+  clearNameError: []
+  newProject: []
+  copyProject: []
+  openProject: [id: string]
+  refreshProjectList: []
 }>()
+
+const nameDraft = ref(props.projectName)
+const showLoadDialog = ref(false)
+
+watch(
+  () => props.projectName,
+  (name) => {
+    nameDraft.value = name
+  },
+)
+
+function commitProjectName() {
+  if (nameDraft.value.trim() === props.projectName) {
+    nameDraft.value = props.projectName
+    return
+  }
+  emit('setProjectName', nameDraft.value)
+}
+
+function onNameKeydown(event: KeyboardEvent) {
+  if (event.key === 'Enter') {
+    ;(event.target as HTMLInputElement).blur()
+  } else if (event.key === 'Escape') {
+    nameDraft.value = props.projectName
+    ;(event.target as HTMLInputElement).blur()
+  }
+}
+
+watch(
+  () => props.nameError,
+  (err) => {
+    if (err) nameDraft.value = props.projectName
+  },
+)
+
+function openLoadDialog() {
+  emit('refreshProjectList')
+  showLoadDialog.value = true
+}
+
+function closeLoadDialog() {
+  showLoadDialog.value = false
+}
+
+function onLoadProject(id: string) {
+  emit('openProject', id)
+  showLoadDialog.value = false
+}
+
+function formatUpdatedAt(ts: number): string {
+  if (!ts) return '–'
+  try {
+    return new Intl.DateTimeFormat('de-DE', {
+      dateStyle: 'short',
+      timeStyle: 'short',
+    }).format(new Date(ts))
+  } catch {
+    return new Date(ts).toLocaleString()
+  }
+}
 
 const pointKeys: RoomPointKey[] = ['p1', 'p2', 'p3', 'p4']
 
@@ -170,6 +241,99 @@ function onSelectedXRight(event: Event) {
 
 <template>
   <div class="controls">
+    <section class="project-panel">
+      <h2>Projekt</h2>
+      <div class="field project-name-field">
+        <label for="project-name">Name</label>
+        <input
+          id="project-name"
+          v-model="nameDraft"
+          type="text"
+          maxlength="80"
+          autocomplete="off"
+          spellcheck="false"
+          :class="{ error: !!nameError }"
+          @input="emit('clearNameError')"
+          @keydown="onNameKeydown"
+          @blur="commitProjectName"
+        />
+        <p v-if="nameError" class="name-error">{{ nameError }}</p>
+        <p v-else class="name-hint">
+          Gespeichert {{ formatUpdatedAt(projectUpdatedAt) }} · localStorage
+        </p>
+      </div>
+      <div class="project-actions">
+        <button
+          type="button"
+          class="btn btn-project"
+          title="Neues leeres Projekt – aktuelles bleibt gespeichert"
+          @click="emit('newProject')"
+        >
+          Neu
+        </button>
+        <button
+          type="button"
+          class="btn btn-project"
+          title="Kopie mit Index im Namen – Original bleibt gespeichert"
+          @click="emit('copyProject')"
+        >
+          Kopieren
+        </button>
+        <button
+          type="button"
+          class="btn btn-project"
+          title="Gespeichertes Projekt laden"
+          @click="openLoadDialog"
+        >
+          Laden
+        </button>
+      </div>
+    </section>
+
+    <div v-if="showLoadDialog" class="modal-backdrop" @click.self="closeLoadDialog">
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="load-title">
+        <div class="modal-header">
+          <h3 id="load-title">Projekt laden</h3>
+          <button type="button" class="btn-icon" title="Schließen" @click="closeLoadDialog">
+            ✕
+          </button>
+        </div>
+        <p class="modal-hint">
+          Aktuell: <strong>{{ projectName }}</strong> – wird vorher gespeichert.
+        </p>
+        <ul v-if="projectList.length" class="project-list">
+          <li
+            v-for="p in projectList"
+            :key="p.id"
+            class="project-item"
+            :class="{ current: p.id === projectId }"
+          >
+            <div class="project-meta">
+              <strong>{{ p.name }}</strong>
+              <small>
+                {{ p.cabinetCount }} Schrank/Schränke · {{ formatUpdatedAt(p.updatedAt) }}
+                <span v-if="p.id === projectId"> · geöffnet</span>
+              </small>
+            </div>
+            <button
+              type="button"
+              class="btn btn-load-one"
+              :disabled="p.id === projectId"
+              @click="onLoadProject(p.id)"
+            >
+              {{ p.id === projectId ? 'Aktiv' : 'Öffnen' }}
+            </button>
+          </li>
+        </ul>
+        <p v-else class="empty">Keine gespeicherten Projekte.</p>
+        <button type="button" class="btn btn-modal-close" @click="closeLoadDialog">
+          Schließen
+        </button>
+      </div>
+    </div>
+
+    <hr />
+
     <h2>Raum von der Seite</h2>
     <p class="hint">
       Pfad: <strong>P0 → P1 → P2 → P3 → P4 → PEnd</strong><br />
@@ -935,5 +1099,158 @@ input:disabled {
 .cabinet-count {
   font-size: 12px;
   color: #888;
+}
+
+/* --- Projekt --- */
+.project-panel {
+  margin-bottom: 4px;
+}
+
+.project-name-field input.error {
+  border-color: #e74c3c;
+  background: #fdf2f1;
+}
+
+.name-error {
+  margin: 4px 0 0;
+  font-size: 11px;
+  color: #c0392b;
+  font-weight: 600;
+}
+
+.name-hint {
+  margin: 4px 0 0;
+  font-size: 11px;
+  color: #888;
+}
+
+.project-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.btn-project {
+  flex: 1;
+  width: auto;
+  padding: 8px 6px;
+  font-size: 12px;
+  background: #34495e;
+  color: #fff;
+}
+.btn-project:hover {
+  background: #2c3e50;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.modal {
+  background: #fff;
+  border-radius: 10px;
+  width: min(420px, 100%);
+  max-height: min(70vh, 560px);
+  overflow: auto;
+  padding: 16px 18px 18px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 16px;
+  color: #2c3e50;
+}
+
+.modal-hint {
+  margin: 0 0 12px;
+  font-size: 12px;
+  color: #666;
+  line-height: 1.4;
+}
+
+.project-list {
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.project-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  background: #fafafa;
+}
+
+.project-item.current {
+  border-color: #2980b9;
+  background: #ebf5fb;
+}
+
+.project-meta {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.project-meta strong {
+  font-size: 13px;
+  color: #2c3e50;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.project-meta small {
+  font-size: 11px;
+  color: #888;
+}
+
+.btn-load-one {
+  width: auto;
+  flex-shrink: 0;
+  padding: 7px 12px;
+  font-size: 12px;
+  background: #2980b9;
+  color: #fff;
+}
+.btn-load-one:hover:not(:disabled) {
+  background: #2471a3;
+}
+.btn-load-one:disabled {
+  opacity: 0.55;
+  cursor: default;
+  background: #7f8c8d;
+}
+
+.btn-modal-close {
+  background: #ecf0f1;
+  color: #2c3e50;
+}
+.btn-modal-close:hover {
+  background: #d5dbdb;
 }
 </style>
