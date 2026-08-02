@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { reactive, ref, computed, watch } from 'vue'
 import type { RoomPoints, RoomPointKey, Cabinet, ProjectSummary } from '../types'
-import { ROOM_POINT_LABELS, getVirtualCorners } from '../types'
+import { getVirtualCorners } from '../types'
+import { t, roomPointLabel } from '../i18n'
 import {
   validateCabinet,
   describeCabinetIssues,
@@ -199,7 +200,7 @@ const movableCount = computed(
 const snapMode = ref<SnapMode>('left')
 
 const newCabinet = reactive({
-  label: 'Schrank',
+  label: t('cabinet_add.label'),
   width: 80,
   height: 180,
   x: 140,
@@ -290,11 +291,7 @@ function copySelectedCabinet() {
   })
 }
 
-const snapModeLabel = computed(() => {
-  if (snapMode.value === 'none') return 'kein Snapping (x wird übernommen)'
-  if (snapMode.value === 'left') return 'Snap to left'
-  return 'Snap to right'
-})
+const snapModeLabel = computed(() => t(`snap_mode.${snapMode.value}`))
 
 function patchSelected(patch: Partial<Omit<Cabinet, 'id'>>) {
   if (!props.selectedCabinetId) return
@@ -322,12 +319,12 @@ function onSelectedXRight(event: Event) {
 <template>
   <div class="controls">
     <div class="mobile-bar">
-      <h2 class="mobile-bar-title">Einstellungen</h2>
+      <h2 class="mobile-bar-title">{{ t('controls.title') }}</h2>
       <button
         type="button"
         class="btn-icon"
-        title="Schließen"
-        aria-label="Menü schließen"
+        :title="t('controls.close')"
+        :aria-label="t('controls.close')"
         @click="emit('closePanel')"
       >
         ✕
@@ -335,9 +332,9 @@ function onSelectedXRight(event: Event) {
     </div>
 
     <section class="project-panel">
-      <h2>Projekt</h2>
+      <h2>{{ t('project.section') }}</h2>
       <div class="field project-name-field">
-        <label for="project-name">Name</label>
+        <label for="project-name">{{ t('project.name') }}</label>
         <input
           id="project-name"
           v-model="nameDraft"
@@ -352,63 +349,63 @@ function onSelectedXRight(event: Event) {
         />
         <p v-if="nameError" class="name-error">{{ nameError }}</p>
         <p v-else class="name-hint">
-          Gespeichert {{ formatUpdatedAt(projectUpdatedAt) }} · localStorage
+          {{ t('project.saved_hint', { updatedAt: formatUpdatedAt(projectUpdatedAt) }) }}
         </p>
       </div>
       <div class="project-actions">
         <button
           type="button"
           class="btn btn-project"
-          title="Neues leeres Projekt – aktuelles bleibt gespeichert"
+          :title="t('project.btn_new_title')"
           @click="emit('newProject')"
         >
-          Neu
+          {{ t('project.btn_new') }}
         </button>
         <button
           type="button"
           class="btn btn-project"
-          title="Kopie mit Index im Namen – Original bleibt gespeichert"
+          :title="t('project.btn_copy_title')"
           @click="emit('copyProject')"
         >
-          Kopieren
+          {{ t('project.btn_copy') }}
         </button>
         <button
           type="button"
           class="btn btn-project"
-          title="Gespeichertes Projekt laden"
+          :title="t('project.btn_load_title')"
           @click="openLoadDialog"
         >
-          Laden
+          {{ t('project.btn_load') }}
         </button>
       </div>
       <div class="history-actions">
         <button
           type="button"
           class="btn btn-history"
-          title="Rückgängig (Ctrl+Z)"
+          :title="t('project.btn_undo_title')"
           :disabled="!canUndo"
           @click="emit('undo')"
         >
-          ↶ Undo
+          {{ t('project.btn_undo') }}
         </button>
         <button
           type="button"
           class="btn btn-history"
-          title="Wiederholen (Ctrl+Y)"
+          :title="t('project.btn_redo_title')"
           :disabled="!canRedo"
           @click="emit('redo')"
         >
-          ↷ Redo
+          {{ t('project.btn_redo') }}
         </button>
       </div>
-      <p class="history-hint">Nur lokal · nicht in der URL</p>
+      <p class="history-hint">{{ t('project.history_hint') }}</p>
       <button
         type="button"
         class="btn btn-share"
-        title="Aktuellen Plan als Link in die Zwischenablage kopieren"
+        :title="t('project.btn_share_title')"
         @click="emit('copyShareLink')"
       >
-        🔗 Share-Link kopieren
+        {{ t('project.btn_share') }}
       </button>
       <p v-if="shareStatus" class="share-status">{{ shareStatus }}</p>
     </section>
@@ -416,13 +413,13 @@ function onSelectedXRight(event: Event) {
     <div v-if="showLoadDialog" class="modal-backdrop" @click.self="closeLoadDialog">
       <div class="modal" role="dialog" aria-modal="true" aria-labelledby="load-title">
         <div class="modal-header">
-          <h3 id="load-title">Projekt laden</h3>
-          <button type="button" class="btn-icon" title="Schließen" @click="closeLoadDialog">
+          <h3 id="load-title">{{ t('load_dialog.title') }}</h3>
+          <button type="button" class="btn-icon" :title="t('controls.close')" @click="closeLoadDialog">
             ✕
           </button>
         </div>
         <p class="modal-hint">
-          Aktuell: <strong>{{ projectName }}</strong> – wird vorher gespeichert.
+          {{ t('load_dialog.current_hint', { name: projectName }) }}
         </p>
         <ul v-if="projectList.length" class="project-list">
           <li
@@ -434,8 +431,8 @@ function onSelectedXRight(event: Event) {
             <div class="project-meta">
               <strong>{{ p.name }}</strong>
               <small>
-                {{ p.cabinetCount }} Schrank/Schränke · {{ formatUpdatedAt(p.updatedAt) }}
-                <span v-if="p.id === projectId"> · geöffnet</span>
+                {{ t('cabinet.count', { count: p.cabinetCount }) }} · {{ formatUpdatedAt(p.updatedAt) }}
+                <span v-if="p.id === projectId"> · {{ t('load_dialog.current_badge') }}</span>
               </small>
             </div>
             <div class="project-item-actions">
@@ -445,12 +442,12 @@ function onSelectedXRight(event: Event) {
                 :disabled="p.id === projectId"
                 @click="onLoadProject(p.id)"
               >
-                {{ p.id === projectId ? 'Aktiv' : 'Öffnen' }}
+                {{ p.id === projectId ? t('load_dialog.active') : t('load_dialog.open') }}
               </button>
               <button
                 type="button"
                 class="btn btn-delete-one"
-                title="Projekt löschen"
+                :title="t('load_dialog.delete_title')"
                 @click="askDeleteProject(p)"
               >
                 🗑
@@ -458,9 +455,9 @@ function onSelectedXRight(event: Event) {
             </div>
           </li>
         </ul>
-        <p v-else class="empty">Keine gespeicherten Projekte.</p>
+        <p v-else class="empty">{{ t('load_dialog.empty') }}</p>
         <button type="button" class="btn btn-modal-close" @click="closeLoadDialog">
-          Schließen
+          {{ t('load_dialog.btn_close') }}
         </button>
       </div>
     </div>
@@ -469,25 +466,24 @@ function onSelectedXRight(event: Event) {
     <div v-if="confirmDelete" class="modal-backdrop" @click.self="cancelDelete">
       <div class="modal" role="dialog" aria-modal="true" aria-labelledby="delete-title">
         <div class="modal-header">
-          <h3 id="delete-title">Projekt löschen?</h3>
-          <button type="button" class="btn-icon" title="Schließen" @click="cancelDelete">
+          <h3 id="delete-title">{{ t('delete_dialog.title') }}</h3>
+          <button type="button" class="btn-icon" :title="t('controls.close')" @click="cancelDelete">
             ✕
           </button>
         </div>
         <p class="modal-hint">
-          <strong>{{ confirmDelete.name }}</strong> wird dauerhaft gelöscht.
-          Diese Aktion kann nicht rückgängig gemacht werden.
+          {{ t('delete_dialog.confirm_hint', { name: confirmDelete.name }) }}
         </p>
         <div class="modal-actions-row">
           <button type="button" class="btn btn-modal-close" @click="cancelDelete">
-            Abbrechen
+            {{ t('delete_dialog.btn_cancel') }}
           </button>
           <button
             type="button"
             class="btn btn-delete-confirm"
             @click="confirmDeleteProject"
           >
-            Löschen
+            {{ t('delete_dialog.btn_delete') }}
           </button>
         </div>
       </div>
@@ -503,16 +499,12 @@ function onSelectedXRight(event: Event) {
         aria-controls="room-section-body"
         @click="roomSectionOpen = !roomSectionOpen"
       >
-        <h2>Raum von der Seite</h2>
+        <h2>{{ t('room.section') }}</h2>
         <span class="section-chevron" aria-hidden="true">{{ roomSectionOpen ? '▾' : '▸' }}</span>
       </button>
 
       <div v-show="roomSectionOpen" id="room-section-body" class="section-body">
-        <p class="hint">
-          Pfad: <strong>P0 → P1 → P2 → P3 → P4 → PEnd</strong><br />
-          P0/PEnd virtuell (immer h=0).<br />
-          Alle Maße in <strong>cm</strong>.
-        </p>
+        <p class="hint" v-html="t('room.path_hint')" />
 
         <div class="diagram" aria-hidden="true">
           <svg viewBox="0 0 160 80" width="100%" height="80">
@@ -544,18 +536,18 @@ function onSelectedXRight(event: Event) {
         </div>
 
         <div class="point-group virtual">
-          <h3><span class="badge grey">P0</span> virt. unten links</h3>
-          <div class="readonly">x = {{ virtual.p0.x }} cm · h = 0 cm (fix)</div>
+          <h3><span class="badge grey">P0</span> {{ t('room.virtual_bottom_left') }}</h3>
+          <div class="readonly">{{ t('room.readonly_virtual', { x: virtual.p0.x }) }}</div>
         </div>
 
         <div v-for="key in pointKeys" :key="key" class="point-group">
           <h3>
             <span class="badge">{{ key.toUpperCase() }}</span>
-            {{ ROOM_POINT_LABELS[key] }}
+            {{ roomPointLabel(key) }}
           </h3>
           <div class="field-row">
             <div class="field">
-              <label>x (cm)</label>
+              <label>{{ t('room.label_x') }}</label>
               <input
                 type="number"
                 :value="room[key].x"
@@ -565,7 +557,7 @@ function onSelectedXRight(event: Event) {
               />
             </div>
             <div class="field">
-              <label>h vom Boden (cm)</label>
+              <label>{{ t('room.label_y') }}</label>
               <input
                 type="number"
                 :value="room[key].y"
@@ -579,42 +571,41 @@ function onSelectedXRight(event: Event) {
         </div>
 
         <div class="point-group virtual">
-          <h3><span class="badge grey">PEnd</span> virt. unten rechts</h3>
-          <div class="readonly">x = {{ virtual.pEnd.x }} cm · h = 0 cm (fix)</div>
+          <h3><span class="badge grey">PEnd</span> {{ t('room.virtual_bottom_right') }}</h3>
+          <div class="readonly">{{ t('room.readonly_virtual', { x: virtual.pEnd.x }) }}</div>
         </div>
       </div>
     </section>
 
     <hr />
 
-    <h2>Schränke</h2>
+    <h2>{{ t('cabinet.section') }}</h2>
 
     <div class="shift-row">
       <button
         type="button"
         class="btn btn-shift"
         :disabled="movableCount === 0"
-        title="Gültige, nicht fixierte Schränke möglichst weit nach links"
+        :title="t('cabinet.shift_left_title')"
         @click="onShiftCabinets('left')"
       >
-        ← Nach links schieben
+        {{ t('cabinet.shift_left') }}
       </button>
       <button
         type="button"
         class="btn btn-shift"
         :disabled="movableCount === 0"
-        title="Gültige, nicht fixierte Schränke möglichst weit nach rechts"
+        :title="t('cabinet.shift_right_title')"
         @click="onShiftCabinets('right')"
       >
-        Nach rechts schieben →
+        {{ t('cabinet.shift_right') }}
       </button>
     </div>
     <p v-if="movableCount > 0" class="shift-hint">
-      {{ movableCount }} bewegliche Schrank/Schränke werden dicht gepackt.
-      Fixierte und ungültige bleiben stehen.
+      {{ t('cabinet.shift_hint', { count: movableCount }) }}
     </p>
 
-    <div v-if="cabinets.length === 0" class="empty">Noch keine Schränke.</div>
+    <div v-if="cabinets.length === 0" class="empty">{{ t('cabinet.empty') }}</div>
 
     <ul v-else class="cabinet-list">
       <li
@@ -632,9 +623,9 @@ function onSelectedXRight(event: Event) {
         <span class="cab-meta">
           <strong>
             {{ cab.label }}
-            <span v-if="cab.fixed" class="fixed-tag">fixiert</span>
+            <span v-if="cab.fixed" class="fixed-tag">{{ t('cabinet.fixed_tag') }}</span>
             <span v-if="getValidation(cab).invalid" class="invalid-tag">
-              {{ shortCabinetIssueLabel(getValidation(cab)) || 'ungültig' }}
+              {{ shortCabinetIssueLabel(getValidation(cab)) || t('cabinet.invalid_tag') }}
             </span>
           </strong>
           <small>{{ cab.width }}×{{ cab.height }} cm · x={{ cab.x }}</small>
@@ -642,7 +633,7 @@ function onSelectedXRight(event: Event) {
         <button
           type="button"
           class="btn-icon"
-          title="Löschen"
+          :title="t('cabinet.delete_title')"
           @click.stop="emit('removeCabinet', cab.id)"
         >
           ✕
@@ -656,9 +647,9 @@ function onSelectedXRight(event: Event) {
       class="edit-panel"
       :class="{ invalid: selectedInvalid, fixed: !!selected.fixed }"
     >
-      <h3>Schrank bearbeiten</h3>
+      <h3>{{ t('cabinet_edit.title') }}</h3>
       <p v-if="selectedInvalid" class="invalid-msg">
-        ⚠ {{ selectedIssueText }}
+        {{ t('cabinet_edit.invalid_msg', { reason: selectedIssueText }) }}
       </p>
       <label class="check fixed-toggle">
         <input
@@ -666,13 +657,13 @@ function onSelectedXRight(event: Event) {
           :checked="!!selected.fixed"
           @change="patchSelected({ fixed: ($event.target as HTMLInputElement).checked })"
         />
-        Position & Größe fixieren
+        {{ t('cabinet_edit.fixed_label') }}
       </label>
       <p v-if="selected.fixed" class="fixed-msg">
-        🔒 Fixiert – Position/Größe gesperrt, bleibt beim Schieben stehen.
+        {{ t('cabinet_edit.fixed_msg') }}
       </p>
       <div class="field">
-        <label>Bezeichnung</label>
+        <label>{{ t('cabinet_edit.label') }}</label>
         <input
           type="text"
           :value="selected.label"
@@ -681,7 +672,7 @@ function onSelectedXRight(event: Event) {
       </div>
       <div class="field-row">
         <div class="field">
-          <label>Breite (cm)</label>
+          <label>{{ t('cabinet_edit.width') }}</label>
           <input
             type="number"
             :value="selected.width"
@@ -693,7 +684,7 @@ function onSelectedXRight(event: Event) {
           />
         </div>
         <div class="field">
-          <label>Höhe (cm)</label>
+          <label>{{ t('cabinet_edit.height') }}</label>
           <input
             type="number"
             :value="selected.height"
@@ -707,7 +698,7 @@ function onSelectedXRight(event: Event) {
       </div>
       <div class="field-row">
         <div class="field">
-          <label>x von links (cm)</label>
+          <label>{{ t('cabinet_edit.x_left') }}</label>
           <input
             type="number"
             :value="selected.x"
@@ -718,7 +709,7 @@ function onSelectedXRight(event: Event) {
           />
         </div>
         <div class="field">
-          <label>x von rechts (cm)</label>
+          <label>{{ t('cabinet_edit.x_right') }}</label>
           <input
             type="number"
             :value="selectedXRight"
@@ -730,7 +721,7 @@ function onSelectedXRight(event: Event) {
         </div>
       </div>
       <div class="field">
-        <label>Bodenhöhe y (cm)</label>
+        <label>{{ t('cabinet_edit.y') }}</label>
         <input
           type="number"
           :value="selected.y"
@@ -742,7 +733,7 @@ function onSelectedXRight(event: Event) {
         />
       </div>
       <div class="field">
-        <label>Farbe</label>
+        <label>{{ t('cabinet_edit.color') }}</label>
         <input
           type="color"
           :value="selected.color"
@@ -752,71 +743,64 @@ function onSelectedXRight(event: Event) {
       <button
         type="button"
         class="btn btn-copy"
-        title="Erstellt eine Kopie – Platzierung folgt den Snap-Regeln von 'Neuen Schrank hinzufügen'"
+        :title="t('cabinet_edit.btn_copy_title')"
         @click="copySelectedCabinet"
       >
-        Schrank kopieren
+        {{ t('cabinet_edit.btn_copy') }}
       </button>
-      <p class="copy-hint">
-        Kopie: Bezeichnung, Maße &amp; Farbe übernommen.<br />
-        Platzierung: <strong>{{ snapModeLabel }}</strong>.
-      </p>
+      <p class="copy-hint" v-html="t('cabinet_edit.copy_hint', { snapMode: snapModeLabel })" />
       <button
         type="button"
         class="btn btn-delete"
         @click="emit('removeCabinet', selected.id)"
       >
-        Schrank löschen
+        {{ t('cabinet_edit.btn_delete') }}
       </button>
     </div>
 
     <hr />
 
-    <h2>Neuen Schrank hinzufügen</h2>
+    <h2>{{ t('cabinet_add.section') }}</h2>
 
     <fieldset class="snap-group">
-      <legend>Positionierung</legend>
+      <legend>{{ t('cabinet_add.positioning') }}</legend>
       <label class="radio">
         <input v-model="snapMode" type="radio" value="none" />
-        Kein Snapping
+        {{ t('cabinet_add.snap_none') }}
       </label>
       <label class="radio">
         <input v-model="snapMode" type="radio" value="left" />
-        Snap to left
+        {{ t('cabinet_add.snap_left') }}
       </label>
       <label class="radio">
         <input v-model="snapMode" type="radio" value="right" />
-        Snap to right
+        {{ t('cabinet_add.snap_right') }}
       </label>
       <p class="snap-hint">
-        <template v-if="snapMode === 'none'">x/y manuell setzen.</template>
-        <template v-else-if="snapMode === 'left'">
-          Erste gültige Position von links (Bounds + keine Überlappung).
-        </template>
-        <template v-else>
-          Erste gültige Position von rechts (Bounds + keine Überlappung).
-        </template>
-        Ohne gültige Stelle: horizontal mittig.
+        <template v-if="snapMode === 'none'">{{ t('cabinet_add.snap_hint_none') }}</template>
+        <template v-else-if="snapMode === 'left'">{{ t('cabinet_add.snap_hint_left') }}</template>
+        <template v-else>{{ t('cabinet_add.snap_hint_right') }}</template>
+        {{ t('cabinet_add.snap_hint_fallback') }}
       </p>
     </fieldset>
 
     <div class="field">
-      <label>Bezeichnung</label>
+      <label>{{ t('cabinet_add.label') }}</label>
       <input v-model="newCabinet.label" type="text" />
     </div>
     <div class="field-row">
       <div class="field">
-        <label>Breite (cm)</label>
+        <label>{{ t('cabinet_add.width') }}</label>
         <input v-model.number="newCabinet.width" type="number" min="1" step="1" />
       </div>
       <div class="field">
-        <label>Höhe (cm)</label>
+        <label>{{ t('cabinet_add.height') }}</label>
         <input v-model.number="newCabinet.height" type="number" min="1" step="1" />
       </div>
     </div>
     <div class="field-row">
       <div class="field">
-        <label>x von links (cm)</label>
+        <label>{{ t('cabinet_add.x_left') }}</label>
         <input
           v-model.number="newCabinet.x"
           type="number"
@@ -825,7 +809,7 @@ function onSelectedXRight(event: Event) {
         />
       </div>
       <div class="field">
-        <label>x von rechts (cm)</label>
+        <label>{{ t('cabinet_add.x_right') }}</label>
         <input
           v-model.number="newCabinetXRight"
           type="number"
@@ -835,25 +819,25 @@ function onSelectedXRight(event: Event) {
       </div>
     </div>
     <div class="field">
-      <label>Bodenhöhe y (cm)</label>
+      <label>{{ t('cabinet_add.y') }}</label>
       <input v-model.number="newCabinet.y" type="number" min="0" step="1" />
     </div>
     <div class="field">
-      <label>Farbe</label>
+      <label>{{ t('cabinet_add.color') }}</label>
       <input v-model="newCabinet.color" type="color" />
     </div>
-    <button class="btn btn-add" type="button" @click="onAddCabinet">+ Schrank hinzufügen</button>
+    <button class="btn btn-add" type="button" @click="onAddCabinet">{{ t('cabinet_add.btn_add') }}</button>
 
     <hr />
 
     <div class="actions">
       <span class="cabinet-count">
-        {{ cabinetCount }} Schrank/Schränke
+        {{ t('cabinet.count', { count: cabinetCount }) }}
         <template v-if="invalidCount > 0">
-          · <span class="invalid-count">{{ invalidCount }} ungültig</span>
+          · <span class="invalid-count">{{ t('cabinet.invalid_count', { count: invalidCount }) }}</span>
         </template>
       </span>
-      <button class="btn btn-reset" type="button" @click="emit('reset')">Zurücksetzen</button>
+      <button class="btn btn-reset" type="button" @click="emit('reset')">{{ t('cabinet.btn_reset') }}</button>
     </div>
   </div>
 </template>

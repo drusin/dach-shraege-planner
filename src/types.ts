@@ -55,13 +55,6 @@ export interface RoomPoints {
 
 export type RoomPointKey = keyof RoomPoints
 
-export const ROOM_POINT_LABELS: Record<RoomPointKey, string> = {
-  p1: 'Anfang linke Schräge',
-  p2: 'Ende linke Schräge / Decke',
-  p3: 'Anfang rechte Schräge / Decke',
-  p4: 'Ende rechte Schräge',
-}
-
 export interface VirtualCorners {
   p0: Point2D
   pEnd: Point2D
@@ -85,9 +78,6 @@ export interface Plan {
   room: RoomPoints
   cabinets: Cabinet[]
 }
-
-/** Standard-Name für neue Projekte */
-export const DEFAULT_PROJECT_NAME = 'neues Dachgeschoss'
 
 /** Ein gespeichertes Planungsprojekt */
 export interface Project {

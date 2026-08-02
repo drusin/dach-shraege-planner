@@ -3,6 +3,7 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import { usePlanner } from './composables/usePlanner'
 import PlannerCanvas from './components/PlannerCanvas.vue'
 import Controls from './components/Controls.vue'
+import { t, getLocale } from './i18n'
 
 const {
   plan,
@@ -73,6 +74,8 @@ onMounted(() => {
   checkNarrow()
   window.addEventListener('resize', checkNarrow)
   window.addEventListener('keydown', onKeydown)
+  document.title = t('app.title')
+  document.documentElement.lang = getLocale()
 })
 
 onUnmounted(() => {
@@ -86,10 +89,10 @@ onUnmounted(() => {
   <div class="app" :class="{ 'controls-open': controlsOpen && isNarrow }">
     <header class="header">
       <div class="header-text">
-        <h1>Dachschräge Planer</h1>
+        <h1>{{ t('app.title') }}</h1>
         <p class="subtitle">
           <span class="project-label">{{ projectName }}</span>
-          <span class="subtitle-rest"> · Seitenansicht</span>
+          <span class="subtitle-rest">{{ t('app.subtitle') }}</span>
         </p>
       </div>
       <div class="header-actions">
@@ -102,7 +105,7 @@ onUnmounted(() => {
           @click="toggleControls"
         >
           <span class="btn-header-icon" aria-hidden="true">{{ controlsOpen ? '✕' : '☰' }}</span>
-          <span>{{ controlsOpen ? 'Schließen' : 'Menü' }}</span>
+          <span>{{ controlsOpen ? t('app.close') : t('app.menu') }}</span>
           <span v-if="!controlsOpen && cabinetCount > 0" class="badge-count">{{ cabinetCount }}</span>
         </button>
       </div>

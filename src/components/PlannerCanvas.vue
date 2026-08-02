@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import type { Plan, Point2D, Cabinet } from '../types'
-import { ROOM_POINT_LABELS, getVirtualCorners, getRoomOutline } from '../types'
+import { getVirtualCorners, getRoomOutline } from '../types'
+import { t } from '../i18n'
 import { validateCabinet, shortCabinetIssueLabel } from '../geometry'
 
 const props = defineProps<{
@@ -342,17 +343,17 @@ function draw() {
     } else if (invalid && rw > 24) {
       ctx.font = 'bold 11px system-ui, sans-serif'
       ctx.fillStyle = '#fff'
-      ctx.fillText('⚠', rx + 4, ry + 14)
+      ctx.fillText(t('canvas.warning_icon'), rx + 4, ry + 14)
     }
   }
 
   // Punkte
-  drawPoint(ctx, c.p0, 'P0', 'virt. unten links', p0, true)
-  drawPoint(ctx, c.pEnd, 'PEnd', 'virt. unten rechts', pEnd, true)
-  drawPoint(ctx, c.p1, 'P1', ROOM_POINT_LABELS.p1, room.p1, false)
-  drawPoint(ctx, c.p2, 'P2', ROOM_POINT_LABELS.p2, room.p2, false)
-  drawPoint(ctx, c.p3, 'P3', ROOM_POINT_LABELS.p3, room.p3, false)
-  drawPoint(ctx, c.p4, 'P4', ROOM_POINT_LABELS.p4, room.p4, false)
+  drawPoint(ctx, c.p0, 'P0', t('room.virtual_bottom_left'), p0, true)
+  drawPoint(ctx, c.pEnd, 'PEnd', t('room.virtual_bottom_right'), pEnd, true)
+  drawPoint(ctx, c.p1, 'P1', t('room.point_p1'), room.p1, false)
+  drawPoint(ctx, c.p2, 'P2', t('room.point_p2'), room.p2, false)
+  drawPoint(ctx, c.p3, 'P3', t('room.point_p3'), room.p3, false)
+  drawPoint(ctx, c.p4, 'P4', t('room.point_p4'), room.p4, false)
 
   // Info – kompakter auf schmalen Viewports
   const roomWidth = pEnd.x - p0.x
@@ -364,17 +365,17 @@ function draw() {
   ctx.fillRect(12, 12, infoW, infoH)
   ctx.fillStyle = '#fff'
   ctx.font = `${compact ? 11 : 12}px system-ui, sans-serif`
-  ctx.fillText(`Raumbreite: ${fmt(roomWidth)} cm`, 22, compact ? 28 : 32)
-  ctx.fillText(`max. Höhe: ${fmt(roomHeight)} cm`, 22, compact ? 44 : 50)
+  ctx.fillText(t('canvas.info_room_width', { width: fmt(roomWidth) }), 22, compact ? 28 : 32)
+  ctx.fillText(t('canvas.info_max_height', { height: fmt(roomHeight) }), 22, compact ? 44 : 50)
   if (!compact) {
     ctx.fillText(
-      `Wand l/r unter Schräge: ${fmt(room.p1.y)} / ${fmt(room.p4.y)} cm`,
+      t('canvas.info_wall_left_right', { left: fmt(room.p1.y), right: fmt(room.p4.y) }),
       22,
       68,
     )
   } else {
     ctx.fillText(
-      `Wand l/r: ${fmt(room.p1.y)} / ${fmt(room.p4.y)} cm`,
+      t('canvas.info_wall_left_right_compact', { left: fmt(room.p1.y), right: fmt(room.p4.y) }),
       22,
       60,
     )

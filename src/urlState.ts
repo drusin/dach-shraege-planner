@@ -1,4 +1,5 @@
 import type { Cabinet, Plan, Point2D, RoomPoints } from './types'
+import { t } from './i18n'
 
 /** Query-Parameter für den Plan-Zustand */
 export const STATE_PARAM = 's'
@@ -79,7 +80,7 @@ function cabinetFromWire(raw: unknown, index: number): Cabinet | null {
   if (width === null || height === null || x === null || y === null) return null
 
   const id = typeof o.i === 'string' && o.i ? o.i : `cab-${index}`
-  const label = typeof o.l === 'string' && o.l ? o.l : 'Schrank'
+  const label = typeof o.l === 'string' && o.l ? o.l : t('cabinet_add.label')
   const color = typeof o.c === 'string' && /^#?[0-9a-fA-F]{3,8}$/.test(o.c)
     ? o.c.startsWith('#')
       ? o.c
@@ -229,6 +230,7 @@ export function buildShareUrl(plan: Plan, name?: string | null): string {
   const token = encodePlanToToken(plan, name)
   const url = new URL(window.location.href)
   url.searchParams.set(STATE_PARAM, token)
+  url.searchParams.delete('lang') // never persist override in shared URL
   url.hash = ''
   return url.toString()
 }

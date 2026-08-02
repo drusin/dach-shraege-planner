@@ -1,5 +1,5 @@
 import type { Plan, Project, ProjectSummary } from './types'
-import { DEFAULT_PROJECT_NAME } from './types'
+import { t } from './i18n'
 import { getDefaultPlan } from './urlState'
 
 const STORAGE_KEY = 'dach-schraege-planner:projects:v1'
@@ -122,12 +122,12 @@ export function allocateUniqueName(
   projects?: Project[],
 ): string {
   const list = projects ?? readStore().projects
-  const normalized = normalizeProjectName(base) ?? DEFAULT_PROJECT_NAME
+  const normalized = normalizeProjectName(base) ?? t('default_project_name')
   if (!isProjectNameTaken(normalized, excludeId, list)) return normalized
 
   // Wenn base schon auf " Name N" endet, Stamm ohne Index nutzen
   const stemMatch = normalized.match(/^(.*?)(?:\s+(\d+))?$/)
-  const stem = (stemMatch?.[1] ?? normalized).trim() || DEFAULT_PROJECT_NAME
+  const stem = (stemMatch?.[1] ?? normalized).trim() || t('default_project_name')
 
   let n = 2
   while (isProjectNameTaken(`${stem} ${n}`, excludeId, list)) {
@@ -219,7 +219,7 @@ export function renameProject(
 }
 
 /** Neues leeres Projekt (Defaults), bisherige bleiben gespeichert */
-export function createNewProject(preferredName = DEFAULT_PROJECT_NAME): Project {
+export function createNewProject(preferredName = t('default_project_name')): Project {
   const data = readStore()
   const name = allocateUniqueName(preferredName, null, data.projects)
   const now = Date.now()
@@ -332,7 +332,7 @@ export function bootstrapProject(shareFromUrl: BootstrapShare | Plan | null): Pr
   const sharedName = normalizeProjectName(share?.name ?? '')
 
   if (!project) {
-    const preferred = sharedName ?? DEFAULT_PROJECT_NAME
+    const preferred = sharedName ?? t('default_project_name')
     const created = createNewProject(preferred)
     if (share) {
       return saveProject({

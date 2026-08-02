@@ -1,5 +1,6 @@
 import type { Cabinet, Point2D, RoomPoints } from './types'
 import { getRoomOutline, getVirtualCorners } from './types'
+import { t } from './i18n'
 
 export type SnapMode = 'none' | 'left' | 'right'
 
@@ -154,19 +155,19 @@ export function isCabinetInvalid(
 export function describeCabinetIssues(validation: CabinetValidation): string {
   const parts: string[] = []
   if (validation.outOfBounds) {
-    parts.push('ragt über die Raumbounds (Wand/Dachschräge/Boden)')
+    parts.push(t('validation.out_of_bounds'))
   }
   if (validation.overlaps) {
     const n = validation.overlappingIds.length
-    parts.push(n === 1 ? 'überlappt mit einem anderen Schrank' : `überlappt mit ${n} anderen Schränken`)
+    parts.push(n === 1 ? t('validation.overlaps_one') : t('validation.overlaps_many', { count: n }))
   }
   return parts.join(' · ')
 }
 
 export function shortCabinetIssueLabel(validation: CabinetValidation): string {
-  if (validation.outOfBounds && validation.overlaps) return 'Bounds + Überlappung'
-  if (validation.outOfBounds) return 'außerhalb'
-  if (validation.overlaps) return 'Überlappung'
+  if (validation.outOfBounds && validation.overlaps) return t('validation.short_bounds_overlap')
+  if (validation.outOfBounds) return t('validation.short_out_of_bounds')
+  if (validation.overlaps) return t('validation.short_overlap')
   return ''
 }
 

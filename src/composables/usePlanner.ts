@@ -7,7 +7,7 @@ import type {
   Project,
   ProjectSummary,
 } from '../types'
-import { DEFAULT_PROJECT_NAME } from '../types'
+import { t } from '../i18n'
 import {
   buildShareUrl,
   getDefaultPlan,
@@ -342,10 +342,10 @@ export function usePlanner() {
         document.body.removeChild(ta)
         if (!ok) throw new Error('copy failed')
       }
-      setShareStatus('Link kopiert')
+      setShareStatus(t('project.shared'))
       return true
     } catch {
-      setShareStatus('Kopieren fehlgeschlagen')
+      setShareStatus(t('project.share_failed'))
       return false
     }
   }
@@ -422,7 +422,7 @@ export function usePlanner() {
     nameError.value = null
     const normalized = normalizeProjectName(raw)
     if (!normalized) {
-      nameError.value = 'Name darf nicht leer sein'
+      nameError.value = t('project.name_error_empty')
       return false
     }
     if (normalized === projectName.value) {
@@ -432,11 +432,11 @@ export function usePlanner() {
     const result = renameProject(projectId.value, normalized)
     if (!result.ok) {
       if (result.reason === 'taken') {
-        nameError.value = 'Name ist bereits vergeben'
+        nameError.value = t('project.name_error_taken')
       } else if (result.reason === 'empty') {
-        nameError.value = 'Name darf nicht leer sein'
+        nameError.value = t('project.name_error_empty')
       } else {
-        nameError.value = 'Projekt nicht gefunden'
+        nameError.value = t('project.name_error_missing')
       }
       return false
     }
@@ -451,7 +451,7 @@ export function usePlanner() {
   function newProject() {
     flushHistoryCommit()
     flushPersist()
-    const created = createNewProject(DEFAULT_PROJECT_NAME)
+    const created = createNewProject(t('default_project_name'))
     applyProject(created)
     preferRoomSectionOpen.value = true
   }
@@ -504,7 +504,7 @@ export function usePlanner() {
         }
       }
       // Kein Projekt mehr übrig → frisches Default-Projekt
-      const created = createNewProject(DEFAULT_PROJECT_NAME)
+      const created = createNewProject(t('default_project_name'))
       applyProject(created)
       preferRoomSectionOpen.value = true
     }
