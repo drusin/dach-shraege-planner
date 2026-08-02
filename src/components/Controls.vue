@@ -32,8 +32,28 @@ const pointKeys: RoomPointKey[] = ['p1', 'p2', 'p3', 'p4']
 
 const virtual = computed(() => getVirtualCorners(props.room))
 
+/** Rechte Raumkante (PEnd.x) – Bezug für „x von rechts“ */
+const roomRight = computed(() => virtual.value.pEnd.x)
+
+/** x (links) ↔ x von rechts: right = roomRight - (x + width) */
+function round1(n: number): number {
+  return Math.round(n * 10) / 10
+}
+
+function xFromRight(x: number, width: number): number {
+  return round1(roomRight.value - (x + width))
+}
+
+function xFromLeftUsingRight(xRight: number, width: number): number {
+  return round1(roomRight.value - width - xRight)
+}
+
 const selected = computed(
   () => props.cabinets.find((c) => c.id === props.selectedCabinetId) ?? null,
+)
+
+const selectedXRight = computed(() =>
+  selected.value ? xFromRight(selected.value.x, selected.value.width) : 0,
 )
 
 function getValidation(cab: Cabinet): CabinetValidation {
@@ -69,6 +89,14 @@ const newCabinet = reactive({
   x: 140,
   y: 0,
   color: '#2980b9',
+})
+
+const newCabinetXRight = computed({
+  get: () => xFromRight(newCabinet.x, newCabinet.width),
+  set: (right: number) => {
+    if (!Number.isFinite(right)) return
+    newCabinet.x = xFromLeftUsingRight(right, newCabinet.width)
+  },
 })
 
 const manualPosition = computed(() => snapMode.value === 'none')
@@ -129,6 +157,14 @@ function onSelectedNum(
   const n = parseNum(event)
   if (n === null) return
   patchSelected({ [field]: n })
+}
+
+/** „x von rechts“ → speichert intern weiterhin x von links */
+function onSelectedXRight(event: Event) {
+  if (!selected.value) return
+  const n = parseNum(event)
+  if (n === null) return
+  patchSelected({ x: xFromLeftUsingRight(n, selected.value.width) })
 }
 </script>
 
@@ -343,17 +379,28 @@ function onSelectedNum(
           />
         </div>
         <div class="field">
-          <label>Bodenhöhe y (cm)</label>
+          <label>x von rechts (cm)</label>
           <input
             type="number"
-            :value="selected.y"
-            min="0"
+            :value="selectedXRight"
             step="1"
             :disabled="!!selected.fixed"
-            @change="onSelectedNum('y', $event)"
-            @blur="onSelectedNum('y', $event)"
+            @change="onSelectedXRight($event)"
+            @blur="onSelectedXRight($event)"
           />
         </div>
+      </div>
+      <div class="field">
+        <label>Bodenhöhe y (cm)</label>
+        <input
+          type="number"
+          :value="selected.y"
+          min="0"
+          step="1"
+          :disabled="!!selected.fixed"
+          @change="onSelectedNum('y', $event)"
+          @blur="onSelectedNum('y', $event)"
+        />
       </div>
       <div class="field">
         <label>Farbe</label>
@@ -427,9 +474,18 @@ function onSelectedNum(
         />
       </div>
       <div class="field">
-        <label>Bodenhöhe y (cm)</label>
-        <input v-model.number="newCabinet.y" type="number" min="0" step="1" />
+        <label>x von rechts (cm)</label>
+        <input
+          v-model.number="newCabinetXRight"
+          type="number"
+          step="1"
+          :disabled="!manualPosition"
+        />
       </div>
+    </div>
+    <div class="field">
+      <label>Bodenhöhe y (cm)</label>
+      <input v-model.number="newCabinet.y" type="number" min="0" step="1" />
     </div>
     <div class="field">
       <label>Farbe</label>
