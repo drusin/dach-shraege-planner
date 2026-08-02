@@ -29,6 +29,8 @@ interface WireCabinetV1 {
   c: string
   /** fixed (1 = true, omitted = false) */
   f?: 1
+  /** comment (optional) */
+  m?: string
 }
 
 interface WireStateV1 {
@@ -88,8 +90,9 @@ function cabinetFromWire(raw: unknown, index: number): Cabinet | null {
     : '#2980b9'
 
   const fixed = o.f === 1 || o.f === true
+  const comment = typeof o.m === 'string' && o.m ? o.m : undefined
 
-  return { id, label, width, height, x, y, color, fixed }
+  return { id, label, width, height, x, y, color, fixed, ...(comment !== undefined ? { comment } : {}) }
 }
 
 function normalizeSharedName(raw: unknown): string | null {
@@ -124,6 +127,7 @@ function toWire(plan: Plan, name?: string | null): WireStateV1 {
       y: cab.y,
       c: cab.color,
       ...(cab.fixed ? { f: 1 as const } : {}),
+      ...(cab.comment ? { m: cab.comment.slice(0, 300) } : {}),
     })),
     ...(n ? { n } : {}),
   }

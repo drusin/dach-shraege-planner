@@ -17,6 +17,8 @@ export interface Cabinet {
   /** Linke untere Ecke: Höhe vom Boden in cm */
   y: number
   color: string
+  /** Optionaler Kommentar/Notiz zu diesem Schrank */
+  comment?: string
   /**
    * Fixiert: Position/Größe nicht änderbar,
    * wird beim Links-/Rechts-Schieben nicht bewegt.

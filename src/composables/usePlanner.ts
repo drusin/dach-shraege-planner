@@ -379,6 +379,7 @@ export function usePlanner() {
     if (patch.fixed !== undefined) cab.fixed = patch.fixed
     if (patch.label !== undefined) cab.label = patch.label
     if (patch.color !== undefined) cab.color = patch.color
+    if (patch.comment !== undefined) cab.comment = patch.comment
 
     if (!cab.fixed) {
       if (patch.width !== undefined) cab.width = Math.max(1, finiteOr(patch.width, cab.width))

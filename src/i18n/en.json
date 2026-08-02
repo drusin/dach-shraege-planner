@@ -82,7 +82,9 @@
   "cabinet_edit.color": "Color",
   "cabinet_edit.btn_copy": "Copy cabinet",
   "cabinet_edit.btn_copy_title": "Creates a copy – placement follows the snap rules from 'Add new cabinet'",
-  "cabinet_edit.copy_hint": "Copy: label, dimensions & color adopted.<br/>Placement: <strong>{snapMode}</strong>.",
+  "cabinet_edit.copy_hint": "Copy: label, dimensions, color & note adopted.<br/>Placement: <strong>{snapMode}</strong>.",
+  "cabinet_edit.comment": "Note",
+  "cabinet_edit.comment_placeholder": "Note about this cabinet (optional)",
   "cabinet_edit.btn_delete": "Delete cabinet",
 
   "cabinet_add.section": "Add New Cabinet",

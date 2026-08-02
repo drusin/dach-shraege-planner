@@ -274,6 +274,7 @@ function copySelectedCabinet() {
     x: source.x + 10,
     y: source.y,
     color: source.color,
+    comment: source.comment,
   }
 
   const placed = resolveCabinetPlacement(
@@ -628,6 +629,7 @@ function onSelectedXRight(event: Event) {
             </span>
           </strong>
           <small>{{ cab.width }}×{{ cab.height }} cm · x={{ cab.x }}</small>
+          <small v-if="cab.comment" class="cab-comment">{{ cab.comment }}</small>
         </span>
         <button
           type="button"
@@ -738,6 +740,16 @@ function onSelectedXRight(event: Event) {
           :value="selected.color"
           @input="patchSelected({ color: ($event.target as HTMLInputElement).value })"
         />
+      </div>
+      <div class="field">
+        <label>{{ t('cabinet_edit.comment') }}</label>
+        <textarea
+          :value="selected.comment ?? ''"
+          maxlength="300"
+          rows="3"
+          :placeholder="t('cabinet_edit.comment_placeholder')"
+          @input="patchSelected({ comment: ($event.target as HTMLTextAreaElement).value })"
+        ></textarea>
       </div>
       <button
         type="button"
@@ -1166,6 +1178,14 @@ h3 {
   color: #888;
 }
 
+.cab-comment {
+  font-style: italic;
+  color: #7f8c8d;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .btn-icon {
   border: none;
   background: transparent;
@@ -1239,6 +1259,18 @@ input[type='color'] {
   min-height: 44px;
   padding: 2px;
   cursor: pointer;
+}
+
+textarea {
+  padding: 8px 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 13px;
+  font-family: inherit;
+  width: 100%;
+  min-height: 72px;
+  resize: vertical;
+  line-height: 1.4;
 }
 
 input[type='checkbox'],

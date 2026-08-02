@@ -82,7 +82,9 @@
   "cabinet_edit.color": "Farbe",
   "cabinet_edit.btn_copy": "Schrank kopieren",
   "cabinet_edit.btn_copy_title": "Erstellt eine Kopie – Platzierung folgt den Snap-Regeln von 'Neuen Schrank hinzufügen'",
-  "cabinet_edit.copy_hint": "Kopie: Bezeichnung, Maße & Farbe übernommen.<br/>Platzierung: <strong>{snapMode}</strong>.",
+  "cabinet_edit.copy_hint": "Kopie: Bezeichnung, Maße, Farbe & Notiz übernommen.<br/>Platzierung: <strong>{snapMode}</strong>.",
+  "cabinet_edit.comment": "Notiz",
+  "cabinet_edit.comment_placeholder": "Notiz zu diesem Schrank (optional)",
   "cabinet_edit.btn_delete": "Schrank löschen",
 
   "cabinet_add.section": "Neuen Schrank hinzufügen",
