@@ -1,8 +1,15 @@
 <script setup lang="ts">
-import { reactive, computed } from 'vue'
+import { reactive, ref, computed } from 'vue'
 import type { RoomPoints, RoomPointKey, Cabinet } from '../types'
 import { ROOM_POINT_LABELS, getVirtualCorners } from '../types'
-import { isCabinetInvalid } from '../geometry'
+import {
+  validateCabinet,
+  describeCabinetIssues,
+  shortCabinetIssueLabel,
+  resolveCabinetPlacement,
+  type CabinetValidation,
+  type SnapMode,
+} from '../geometry'
 
 const props = defineProps<{
   room: RoomPoints
@@ -28,17 +35,25 @@ const selected = computed(
   () => props.cabinets.find((c) => c.id === props.selectedCabinetId) ?? null,
 )
 
-const selectedInvalid = computed(() =>
-  selected.value ? isCabinetInvalid(selected.value, props.room) : false,
+function getValidation(cab: Cabinet): CabinetValidation {
+  return validateCabinet(cab, props.room, props.cabinets)
+}
+
+const selectedValidation = computed(() =>
+  selected.value ? getValidation(selected.value) : null,
+)
+
+const selectedInvalid = computed(() => selectedValidation.value?.invalid ?? false)
+
+const selectedIssueText = computed(() =>
+  selectedValidation.value ? describeCabinetIssues(selectedValidation.value) : '',
 )
 
 const invalidCount = computed(
-  () => props.cabinets.filter((c) => isCabinetInvalid(c, props.room)).length,
+  () => props.cabinets.filter((c) => getValidation(c).invalid).length,
 )
 
-function cabinetInvalid(cab: Cabinet): boolean {
-  return isCabinetInvalid(cab, props.room)
-}
+const snapMode = ref<SnapMode>('left')
 
 const newCabinet = reactive({
   label: 'Schrank',
@@ -48,6 +63,8 @@ const newCabinet = reactive({
   y: 0,
   color: '#2980b9',
 })
+
+const manualPosition = computed(() => snapMode.value === 'none')
 
 function parseNum(event: Event): number | null {
   const raw = (event.target as HTMLInputElement).value
@@ -69,7 +86,7 @@ function onPointY(key: RoomPointKey, event: Event) {
 }
 
 function onAddCabinet() {
-  emit('addCabinet', {
+  const draft = {
     id: crypto.randomUUID(),
     label: newCabinet.label,
     width: newCabinet.width,
@@ -77,6 +94,19 @@ function onAddCabinet() {
     x: newCabinet.x,
     y: newCabinet.y,
     color: newCabinet.color,
+  }
+
+  const placed = resolveCabinetPlacement(
+    draft,
+    props.room,
+    props.cabinets,
+    snapMode.value,
+  )
+
+  emit('addCabinet', {
+    ...draft,
+    x: placed.x,
+    y: placed.y,
   })
 }
 
@@ -186,7 +216,7 @@ function onSelectedNum(
         class="cabinet-item"
         :class="{
           active: cab.id === selectedCabinetId,
-          invalid: cabinetInvalid(cab),
+          invalid: getValidation(cab).invalid,
         }"
         @click="emit('selectCabinet', cab.id)"
       >
@@ -194,7 +224,9 @@ function onSelectedNum(
         <span class="cab-meta">
           <strong>
             {{ cab.label }}
-            <span v-if="cabinetInvalid(cab)" class="invalid-tag">ungültig</span>
+            <span v-if="getValidation(cab).invalid" class="invalid-tag">
+              {{ shortCabinetIssueLabel(getValidation(cab)) || 'ungültig' }}
+            </span>
           </strong>
           <small>{{ cab.width }}×{{ cab.height }} cm · x={{ cab.x }}</small>
         </span>
@@ -213,7 +245,7 @@ function onSelectedNum(
     <div v-if="selected" class="edit-panel" :class="{ invalid: selectedInvalid }">
       <h3>Schrank bearbeiten</h3>
       <p v-if="selectedInvalid" class="invalid-msg">
-        ⚠ Ragt über die Raumbounds (Wand/Dachschräge/Boden).
+        ⚠ {{ selectedIssueText }}
       </p>
       <div class="field">
         <label>Bezeichnung</label>
@@ -290,6 +322,33 @@ function onSelectedNum(
     <hr />
 
     <h2>Neuen Schrank hinzufügen</h2>
+
+    <fieldset class="snap-group">
+      <legend>Positionierung</legend>
+      <label class="radio">
+        <input v-model="snapMode" type="radio" value="none" />
+        Kein Snapping
+      </label>
+      <label class="radio">
+        <input v-model="snapMode" type="radio" value="left" />
+        Snap to left
+      </label>
+      <label class="radio">
+        <input v-model="snapMode" type="radio" value="right" />
+        Snap to right
+      </label>
+      <p class="snap-hint">
+        <template v-if="snapMode === 'none'">x/y manuell setzen.</template>
+        <template v-else-if="snapMode === 'left'">
+          Erste gültige Position von links (Bounds + keine Überlappung).
+        </template>
+        <template v-else>
+          Erste gültige Position von rechts (Bounds + keine Überlappung).
+        </template>
+        Ohne gültige Stelle: horizontal mittig.
+      </p>
+    </fieldset>
+
     <div class="field">
       <label>Bezeichnung</label>
       <input v-model="newCabinet.label" type="text" />
@@ -307,7 +366,12 @@ function onSelectedNum(
     <div class="field-row">
       <div class="field">
         <label>x von links (cm)</label>
-        <input v-model.number="newCabinet.x" type="number" step="1" />
+        <input
+          v-model.number="newCabinet.x"
+          type="number"
+          step="1"
+          :disabled="!manualPosition"
+        />
       </div>
       <div class="field">
         <label>Bodenhöhe y (cm)</label>
@@ -600,6 +664,53 @@ hr {
   font-weight: 600;
   cursor: pointer;
   transition: background 0.15s;
+}
+
+.snap-group {
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  padding: 10px 12px 8px;
+  margin: 0 0 12px;
+  background: #f7f8fa;
+}
+
+.snap-group legend {
+  padding: 0 4px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #666;
+}
+
+.radio {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #333;
+  margin-bottom: 6px;
+  cursor: pointer;
+  text-transform: none;
+  font-weight: 500;
+}
+
+.radio input {
+  width: auto;
+  margin: 0;
+  accent-color: #2980b9;
+}
+
+.snap-hint {
+  margin: 6px 0 0;
+  font-size: 11px;
+  color: #888;
+  line-height: 1.35;
+}
+
+input:disabled {
+  background: #eee;
+  color: #999;
+  cursor: not-allowed;
 }
 
 .btn-add {

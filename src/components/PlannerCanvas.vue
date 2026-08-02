@@ -2,7 +2,7 @@
 import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import type { Plan, Point2D, Cabinet } from '../types'
 import { ROOM_POINT_LABELS, getVirtualCorners, getRoomOutline } from '../types'
-import { isCabinetInvalid } from '../geometry'
+import { validateCabinet, shortCabinetIssueLabel } from '../geometry'
 
 const props = defineProps<{
   plan: Plan
@@ -213,7 +213,8 @@ function draw() {
   // --- Schränke ---
   for (const cab of props.plan.cabinets) {
     const selected = cab.id === props.selectedCabinetId
-    const invalid = isCabinetInvalid(cab, room)
+    const validation = validateCabinet(cab, room, props.plan.cabinets)
+    const invalid = validation.invalid
     const { rx, ry, rw, rh } = cabinetRect(cab)
 
     ctx.fillStyle = 'rgba(0,0,0,0.12)'
@@ -290,7 +291,8 @@ function draw() {
       if (invalid) {
         ctx.font = 'bold 11px system-ui, sans-serif'
         ctx.fillStyle = '#fff'
-        ctx.fillText('⚠ außerhalb', rx + 8, ry + 50)
+        const label = shortCabinetIssueLabel(validation)
+        ctx.fillText(`⚠ ${label}`, rx + 8, ry + 50)
       }
     } else if (invalid && rw > 24) {
       ctx.font = 'bold 11px system-ui, sans-serif'
