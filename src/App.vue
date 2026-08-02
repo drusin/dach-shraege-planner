@@ -20,7 +20,9 @@ const {
   <div class="app">
     <header class="header">
       <h1>Dachschräge Planer</h1>
-      <p class="subtitle">Seitenansicht · P0 → P1 → P2 → P3 → P4 → PEnd</p>
+      <p class="subtitle">
+        Seitenansicht · P0 → P1 → P2 → P3 → P4 → PEnd · Zustand in der URL (teilbar)
+      </p>
     </header>
     <main class="main">
       <Controls

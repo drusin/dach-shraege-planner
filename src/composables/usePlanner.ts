@@ -1,16 +1,10 @@
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import type { Plan, RoomPoints, RoomPointKey, Cabinet, Point2D } from '../types'
-
-/**
- * Default-Dachgeschoss (cm):
- * Wand unter der Schräge 25 cm.
- */
-const defaultRoom: RoomPoints = {
-  p1: { x: 0, y: 25 },
-  p2: { x: 120, y: 240 },
-  p3: { x: 300, y: 240 },
-  p4: { x: 420, y: 25 },
-}
+import {
+  getDefaultPlan,
+  loadPlanFromUrl,
+  writePlanToUrl,
+} from '../urlState'
 
 function cloneRoom(room: RoomPoints): RoomPoints {
   return {
@@ -21,16 +15,21 @@ function cloneRoom(room: RoomPoints): RoomPoints {
   }
 }
 
+function clonePlan(plan: Plan): Plan {
+  return {
+    room: cloneRoom(plan.room),
+    cabinets: plan.cabinets.map((c) => ({ ...c })),
+  }
+}
+
 function finiteOr(value: number | undefined, fallback: number): number {
   return value !== undefined && Number.isFinite(value) ? value : fallback
 }
 
 export function usePlanner() {
-  const plan = ref<Plan>({
-    room: cloneRoom(defaultRoom),
-    cabinets: [],
-  })
+  const initial = loadPlanFromUrl() ?? getDefaultPlan()
 
+  const plan = ref<Plan>(clonePlan(initial))
   const selectedCabinetId = ref<string | null>(null)
 
   const cabinetCount = computed(() => plan.value.cabinets.length)
@@ -38,6 +37,27 @@ export function usePlanner() {
   const selectedCabinet = computed(
     () => plan.value.cabinets.find((c) => c.id === selectedCabinetId.value) ?? null,
   )
+
+  // URL live halten (debounced) – sharebarer Zustand
+  let urlTimer: ReturnType<typeof setTimeout> | null = null
+  watch(
+    plan,
+    (value) => {
+      if (urlTimer) clearTimeout(urlTimer)
+      urlTimer = setTimeout(() => writePlanToUrl(value), 150)
+    },
+    { deep: true, immediate: true },
+  )
+
+  // Browser zurück/vor: URL → State
+  function onPopState() {
+    const loaded = loadPlanFromUrl()
+    plan.value = clonePlan(loaded ?? getDefaultPlan())
+    selectedCabinetId.value = null
+  }
+  if (typeof window !== 'undefined') {
+    window.addEventListener('popstate', onPopState)
+  }
 
   function addCabinet(cabinet: Cabinet) {
     plan.value.cabinets.push(cabinet)
@@ -74,10 +94,7 @@ export function usePlanner() {
   }
 
   function resetPlan() {
-    plan.value = {
-      room: cloneRoom(defaultRoom),
-      cabinets: [],
-    }
+    plan.value = getDefaultPlan()
     selectedCabinetId.value = null
   }
 
