@@ -243,6 +243,41 @@ function onAddCabinet() {
   })
 }
 
+function copySelectedCabinet() {
+  if (!props.selectedCabinetId) return
+  const source = props.cabinets.find((c) => c.id === props.selectedCabinetId)
+  if (!source) return
+
+  const draft = {
+    id: crypto.randomUUID(),
+    label: source.label,
+    width: source.width,
+    height: source.height,
+    x: source.x + 10,
+    y: source.y,
+    color: source.color,
+  }
+
+  const placed = resolveCabinetPlacement(
+    draft,
+    props.room,
+    props.cabinets,
+    snapMode.value,
+  )
+
+  emit('addCabinet', {
+    ...draft,
+    x: placed.x,
+    y: placed.y,
+  })
+}
+
+const snapModeLabel = computed(() => {
+  if (snapMode.value === 'none') return 'kein Snapping (x wird übernommen)'
+  if (snapMode.value === 'left') return 'Snap to left'
+  return 'Snap to right'
+})
+
 function patchSelected(patch: Partial<Omit<Cabinet, 'id'>>) {
   if (!props.selectedCabinetId) return
   emit('updateCabinet', props.selectedCabinetId, patch)
@@ -658,6 +693,18 @@ function onSelectedXRight(event: Event) {
           @input="patchSelected({ color: ($event.target as HTMLInputElement).value })"
         />
       </div>
+      <button
+        type="button"
+        class="btn btn-copy"
+        title="Erstellt eine Kopie – Platzierung folgt den Snap-Regeln von 'Neuen Schrank hinzufügen'"
+        @click="copySelectedCabinet"
+      >
+        Schrank kopieren
+      </button>
+      <p class="copy-hint">
+        Kopie: Bezeichnung, Maße &amp; Farbe übernommen.<br />
+        Platzierung: <strong>{{ snapModeLabel }}</strong>.
+      </p>
       <button
         type="button"
         class="btn btn-delete"
@@ -1236,6 +1283,23 @@ input:disabled {
 }
 .btn-add:hover {
   background: #2471a3;
+}
+
+.btn-copy {
+  background: #d5e8d4;
+  color: #1e6b3b;
+  margin-top: 4px;
+}
+.btn-copy:hover {
+  background: #27ae60;
+  color: #fff;
+}
+
+.copy-hint {
+  margin: 4px 0 12px;
+  font-size: 11px;
+  color: #666;
+  line-height: 1.4;
 }
 
 .btn-delete {
