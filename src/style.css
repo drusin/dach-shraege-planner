@@ -4,13 +4,43 @@
   box-sizing: border-box;
 }
 
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
 body {
   margin: 0;
   font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  /* Prevent rubber-band overscroll shifting fixed drawers on iOS */
+  overscroll-behavior: none;
+  background: #eef2f5;
 }
 
 #app {
   min-height: 100vh;
+  min-height: 100dvh;
+}
+
+/* Larger, consistent tap targets on touch devices */
+@media (pointer: coarse) {
+  button,
+  input,
+  select,
+  textarea,
+  label.radio,
+  label.check {
+    touch-action: manipulation;
+  }
+}
+
+/* Avoid iOS zoom on focus for form fields < 16px */
+@media (max-width: 900px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
 }

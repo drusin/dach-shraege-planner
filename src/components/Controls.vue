@@ -43,6 +43,7 @@ const emit = defineEmits<{
   undo: []
   redo: []
   copyShareLink: []
+  closePanel: []
 }>()
 
 const nameDraft = ref(props.projectName)
@@ -247,6 +248,19 @@ function onSelectedXRight(event: Event) {
 
 <template>
   <div class="controls">
+    <div class="mobile-bar">
+      <h2 class="mobile-bar-title">Einstellungen</h2>
+      <button
+        type="button"
+        class="btn-icon"
+        title="Schließen"
+        aria-label="Menü schließen"
+        @click="emit('closePanel')"
+      >
+        ✕
+      </button>
+    </div>
+
     <section class="project-panel">
       <h2>Projekt</h2>
       <div class="field project-name-field">
@@ -717,7 +731,27 @@ function onSelectedXRight(event: Event) {
   flex-shrink: 0;
   font-size: 14px;
   max-height: calc(100vh - 120px);
+  max-height: calc(100dvh - 120px);
   overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+@media (max-width: 900px) {
+  .controls {
+    width: 100%;
+    max-width: none;
+    height: 100%;
+    max-height: none;
+    border: none;
+    border-radius: 0;
+    padding: 12px 16px 28px;
+  }
+
+  .mobile-bar {
+    display: flex;
+  }
 }
 
 h2 {
@@ -790,15 +824,16 @@ h3 {
 
 .shift-row {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   margin: 8px 0 6px;
 }
 
 .btn-shift {
-  flex: 1;
+  flex: 1 1 120px;
   background: #34495e;
   color: #fff;
-  padding: 8px 6px;
+  padding: 10px 6px;
   font-size: 12px;
 }
 .btn-shift:hover:not(:disabled) {
@@ -829,12 +864,14 @@ h3 {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 10px;
+  padding: 12px 10px;
+  min-height: 48px;
   border: 1px solid #e0e0e0;
   border-radius: 6px;
   cursor: pointer;
   background: #fafafa;
   transition: border-color 0.15s, background 0.15s;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .cabinet-item:hover {
@@ -877,8 +914,10 @@ h3 {
 .check.fixed-toggle {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   margin: 0 0 10px;
+  padding: 8px 0;
+  min-height: 44px;
   font-size: 13px;
   font-weight: 600;
   color: #2c3e50;
@@ -973,10 +1012,14 @@ h3 {
   background: transparent;
   color: #999;
   cursor: pointer;
-  font-size: 14px;
-  padding: 2px 6px;
+  font-size: 16px;
+  padding: 8px;
+  min-width: 40px;
+  min-height: 40px;
   border-radius: 4px;
   line-height: 1;
+  flex-shrink: 0;
+  -webkit-tap-highlight-color: transparent;
 }
 .btn-icon:hover {
   background: #fdecea;
@@ -1006,11 +1049,13 @@ h3 {
 
 .field-row {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
 }
 .field-row .field {
-  flex: 1;
+  flex: 1 1 120px;
   margin-bottom: 0;
+  min-width: 120px;
 }
 
 label {
@@ -1021,18 +1066,28 @@ label {
 }
 
 input {
-  padding: 6px 8px;
+  padding: 8px 10px;
   border: 1px solid #ccc;
   border-radius: 4px;
   font-size: 13px;
   font-family: inherit;
   width: 100%;
+  min-height: 40px;
 }
 
 input[type='color'] {
-  height: 36px;
+  height: 44px;
+  min-height: 44px;
   padding: 2px;
   cursor: pointer;
+}
+
+input[type='checkbox'],
+input[type='radio'] {
+  min-height: 0;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
 }
 
 hr {
@@ -1043,13 +1098,16 @@ hr {
 
 .btn {
   width: 100%;
-  padding: 10px;
+  padding: 12px 10px;
+  min-height: 44px;
   border: none;
   border-radius: 6px;
   font-size: 14px;
   font-weight: 600;
+  font-family: inherit;
   cursor: pointer;
   transition: background 0.15s;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .snap-group {
@@ -1071,10 +1129,12 @@ hr {
 .radio {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   font-size: 13px;
   color: #333;
-  margin-bottom: 6px;
+  margin-bottom: 4px;
+  padding: 8px 0;
+  min-height: 40px;
   cursor: pointer;
   text-transform: none;
   font-weight: 500;
@@ -1162,14 +1222,15 @@ input:disabled {
 
 .project-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 6px;
   margin-top: 10px;
 }
 
 .btn-project {
-  flex: 1;
+  flex: 1 1 80px;
   width: auto;
-  padding: 8px 6px;
+  padding: 10px 6px;
   font-size: 12px;
   background: #34495e;
   color: #fff;
@@ -1187,7 +1248,7 @@ input:disabled {
 .btn-history {
   flex: 1;
   width: auto;
-  padding: 8px 6px;
+  padding: 10px 6px;
   font-size: 12px;
   background: #5d6d7e;
   color: #fff;
@@ -1231,19 +1292,35 @@ input:disabled {
   z-index: 1000;
   background: rgba(0, 0, 0, 0.45);
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: center;
-  padding: 20px;
+  padding: 0;
+}
+
+@media (min-width: 560px) {
+  .modal-backdrop {
+    align-items: center;
+    padding: 20px;
+  }
 }
 
 .modal {
   background: #fff;
-  border-radius: 10px;
+  border-radius: 10px 10px 0 0;
   width: min(420px, 100%);
-  max-height: min(70vh, 560px);
+  max-height: min(85dvh, 560px);
   overflow: auto;
-  padding: 16px 18px 18px;
+  padding: 16px 18px max(18px, env(safe-area-inset-bottom));
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (min-width: 560px) {
+  .modal {
+    border-radius: 10px;
+    max-height: min(70vh, 560px);
+    padding: 16px 18px 18px;
+  }
 }
 
 .modal-header {
@@ -1280,7 +1357,8 @@ input:disabled {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 10px 12px;
+  padding: 12px;
+  min-height: 56px;
   border: 1px solid #e0e0e0;
   border-radius: 6px;
   background: #fafafa;
@@ -1315,7 +1393,7 @@ input:disabled {
 .btn-load-one {
   width: auto;
   flex-shrink: 0;
-  padding: 7px 12px;
+  padding: 10px 14px;
   font-size: 12px;
   background: #2980b9;
   color: #fff;
@@ -1335,5 +1413,28 @@ input:disabled {
 }
 .btn-modal-close:hover {
   background: #d5dbdb;
+}
+
+/* Sticky top bar inside drawer (mobile) */
+.mobile-bar {
+  display: none;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: -12px -16px 12px;
+  padding: 10px 12px;
+  background: #fff;
+  border-bottom: 1px solid #eee;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.mobile-bar-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: #2c3e50;
 }
 </style>

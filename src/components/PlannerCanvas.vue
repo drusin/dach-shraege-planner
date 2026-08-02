@@ -19,7 +19,15 @@ const emit = defineEmits<{
 const wrapRef = ref<HTMLDivElement | null>(null)
 const canvasRef = ref<HTMLCanvasElement | null>(null)
 
-const PADDING = 56
+const PADDING_DESKTOP = 56
+const PADDING_MOBILE = 36
+
+function getPadding() {
+  if (typeof window !== 'undefined' && window.matchMedia('(max-width: 900px)').matches) {
+    return PADDING_MOBILE
+  }
+  return PADDING_DESKTOP
+}
 
 let resizeObserver: ResizeObserver | null = null
 let raf = 0
@@ -154,9 +162,10 @@ function draw() {
   const bounds = getContentBounds()
   const worldW = bounds.maxX - bounds.minX
   const worldH = bounds.maxY - bounds.minY
+  const pad = getPadding()
   const scale = Math.min(
-    (cssW - PADDING * 2) / worldW,
-    (cssH - PADDING * 2) / worldH,
+    (cssW - pad * 2) / worldW,
+    (cssH - pad * 2) / worldH,
   )
 
   const drawW = worldW * scale
@@ -345,20 +354,31 @@ function draw() {
   drawPoint(ctx, c.p3, 'P3', ROOM_POINT_LABELS.p3, room.p3, false)
   drawPoint(ctx, c.p4, 'P4', ROOM_POINT_LABELS.p4, room.p4, false)
 
-  // Info
+  // Info – kompakter auf schmalen Viewports
   const roomWidth = pEnd.x - p0.x
   const roomHeight = Math.max(...outline.map((p) => p.y))
+  const compact = cssW < 480
+  const infoW = compact ? Math.min(210, cssW - 24) : 250
+  const infoH = compact ? 58 : 68
   ctx.fillStyle = 'rgba(0,0,0,0.55)'
-  ctx.fillRect(12, 12, 250, 68)
+  ctx.fillRect(12, 12, infoW, infoH)
   ctx.fillStyle = '#fff'
-  ctx.font = '12px system-ui, sans-serif'
-  ctx.fillText(`Raumbreite: ${fmt(roomWidth)} cm`, 22, 32)
-  ctx.fillText(`max. Höhe: ${fmt(roomHeight)} cm`, 22, 50)
-  ctx.fillText(
-    `Wand l/r unter Schräge: ${fmt(room.p1.y)} / ${fmt(room.p4.y)} cm`,
-    22,
-    68,
-  )
+  ctx.font = `${compact ? 11 : 12}px system-ui, sans-serif`
+  ctx.fillText(`Raumbreite: ${fmt(roomWidth)} cm`, 22, compact ? 28 : 32)
+  ctx.fillText(`max. Höhe: ${fmt(roomHeight)} cm`, 22, compact ? 44 : 50)
+  if (!compact) {
+    ctx.fillText(
+      `Wand l/r unter Schräge: ${fmt(room.p1.y)} / ${fmt(room.p4.y)} cm`,
+      22,
+      68,
+    )
+  } else {
+    ctx.fillText(
+      `Wand l/r: ${fmt(room.p1.y)} / ${fmt(room.p4.y)} cm`,
+      22,
+      60,
+    )
+  }
 }
 
 function drawHandle(
@@ -591,8 +611,9 @@ watch(() => props.selectedCabinetId, scheduleDraw)
 .canvas-wrap {
   flex: 1;
   min-width: 0;
-  min-height: 420px;
+  min-height: 280px;
   height: calc(100vh - 120px);
+  height: calc(100dvh - 120px);
   border: 3px solid #2c3e50;
   border-radius: 6px;
   overflow: hidden;
@@ -606,5 +627,31 @@ watch(() => props.selectedCabinetId, scheduleDraw)
   height: 100%;
   touch-action: none;
   user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+@media (max-width: 900px) {
+  .canvas-wrap {
+    flex: 1;
+    width: 100%;
+    height: auto;
+    min-height: 0;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    /* Header ~56–64px */
+    height: calc(100vh - 64px);
+    height: calc(100dvh - 64px);
+    /* leave room for home indicator when not in drawer */
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+@media (max-width: 900px) and (orientation: landscape) {
+  .canvas-wrap {
+    height: calc(100vh - 52px);
+    height: calc(100dvh - 52px);
+  }
 }
 </style>
