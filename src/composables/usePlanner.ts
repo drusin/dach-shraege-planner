@@ -11,11 +11,12 @@ import { DEFAULT_PROJECT_NAME } from '../types'
 import {
   buildShareUrl,
   getDefaultPlan,
-  loadPlanFromUrl,
+  loadSharedFromUrl,
   writePlanToUrl,
 } from '../urlState'
 import { packValidCabinets } from '../geometry'
 import {
+  allocateUniqueName,
   bootstrapProject,
   clonePlan,
   createNewProject,
@@ -43,7 +44,7 @@ function projectToState(project: Project) {
 }
 
 export function usePlanner() {
-  const boot = bootstrapProject(loadPlanFromUrl())
+  const boot = bootstrapProject(loadSharedFromUrl())
 
   const projectId = ref(boot.id)
   const projectName = ref(boot.name)
@@ -123,7 +124,7 @@ export function usePlanner() {
     selectedCabinetId.value = null
     nameError.value = null
     refreshProjectList()
-    writePlanToUrl(state.plan)
+    writePlanToUrl(state.plan, state.name)
     history.reset({
       plan: clonePlan(state.plan),
       selectedCabinetId: null,
@@ -143,7 +144,7 @@ export function usePlanner() {
     )
     projectUpdatedAt.value = saved.updatedAt
     refreshProjectList()
-    writePlanToUrl(plan.value)
+    writePlanToUrl(plan.value, projectName.value)
   }
 
   function schedulePersist() {
@@ -244,11 +245,26 @@ export function usePlanner() {
   }
 
   function onPopState() {
-    const loaded = loadPlanFromUrl()
+    const loaded = loadSharedFromUrl()
     if (!loaded) return
     flushHistoryCommit()
     silenceHistory = true
-    plan.value = clonePlan(loaded)
+    plan.value = clonePlan(loaded.plan)
+    if (loaded.name) {
+      const result = renameProject(projectId.value, loaded.name)
+      if (result.ok) {
+        projectName.value = result.project.name
+        projectUpdatedAt.value = result.project.updatedAt
+      } else if (result.reason === 'taken') {
+        // Namenskonflikt → eindeutige Variante setzen
+        const unique = allocateUniqueName(loaded.name, projectId.value)
+        const retry = renameProject(projectId.value, unique)
+        if (retry.ok) {
+          projectName.value = retry.project.name
+          projectUpdatedAt.value = retry.project.updatedAt
+        }
+      }
+    }
     selectedCabinetId.value = null
     // URL-Navigation als neuer History-Schritt
     history.push(snapshot())
@@ -303,7 +319,7 @@ export function usePlanner() {
   async function copyShareLink(): Promise<boolean> {
     flushHistoryCommit()
     flushPersist()
-    const url = buildShareUrl(plan.value)
+    const url = buildShareUrl(plan.value, projectName.value)
     try {
       if (navigator.clipboard?.writeText) {
         await navigator.clipboard.writeText(url)
@@ -422,6 +438,7 @@ export function usePlanner() {
     projectUpdatedAt.value = result.project.updatedAt
     nameError.value = null
     refreshProjectList()
+    writePlanToUrl(plan.value, projectName.value)
     return true
   }
 

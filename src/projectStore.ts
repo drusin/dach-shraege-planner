@@ -275,14 +275,39 @@ export function loadProject(id: string): Project | null {
   return project
 }
 
+export interface BootstrapShare {
+  plan: Plan
+  /** optionaler Projektname aus dem Share-Link */
+  name?: string | null
+}
+
 /**
  * Bootstrap:
  * 1) aktives Projekt aus localStorage
  * 2) sonst neuestes Projekt
  * 3) sonst neues Default-Projekt
- * Optional: planFromUrl überschreibt den Plan des aktiven/neuen Projekts (Share-Link).
+ * Optional: Share-Link überschreibt Plan (und ggf. Name) des aktiven/neuen Projekts.
+ * Bei Namenskonflikt wird ein eindeutiger Name vergeben ("Name 2", …).
  */
-export function bootstrapProject(planFromUrl: Plan | null): Project {
+function isBootstrapShare(value: BootstrapShare | Plan): value is BootstrapShare {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'plan' in value &&
+    typeof (value as BootstrapShare).plan === 'object' &&
+    (value as BootstrapShare).plan !== null &&
+    'room' in (value as BootstrapShare).plan
+  )
+}
+
+export function bootstrapProject(shareFromUrl: BootstrapShare | Plan | null): Project {
+  // Abwärtskompatibel: reiner Plan oder { plan, name }
+  const share: BootstrapShare | null = !shareFromUrl
+    ? null
+    : isBootstrapShare(shareFromUrl)
+      ? shareFromUrl
+      : { plan: shareFromUrl }
+
   const data = readStore()
   const activeId = readActiveId()
   let project =
@@ -291,21 +316,29 @@ export function bootstrapProject(planFromUrl: Plan | null): Project {
       ? [...data.projects].sort((a, b) => b.updatedAt - a.updatedAt)[0]
       : null)
 
+  const sharedName = normalizeProjectName(share?.name ?? '')
+
   if (!project) {
-    const created = createNewProject(DEFAULT_PROJECT_NAME)
-    if (planFromUrl) {
+    const preferred = sharedName ?? DEFAULT_PROJECT_NAME
+    const created = createNewProject(preferred)
+    if (share) {
       return saveProject({
         ...created,
-        plan: clonePlan(planFromUrl),
+        // createNewProject hat schon unique Name gesetzt
+        plan: clonePlan(share.plan),
       })
     }
     return created
   }
 
-  if (planFromUrl) {
+  if (share) {
+    const nextName = sharedName
+      ? allocateUniqueName(sharedName, project.id, data.projects)
+      : project.name
     return saveProject({
       ...project,
-      plan: clonePlan(planFromUrl),
+      name: nextName,
+      plan: clonePlan(share.plan),
     })
   }
 

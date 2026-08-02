@@ -36,6 +36,15 @@ interface WireStateV1 {
   r: number[]
   /** cabinets */
   c: WireCabinetV1[]
+  /** optional project name */
+  n?: string
+}
+
+/** Aus der URL geladener Share-Zustand */
+export interface SharedState {
+  plan: Plan
+  /** Projektname, falls im Link mitgegeben */
+  name: string | null
 }
 
 function isFiniteNumber(n: unknown): n is number {
@@ -82,8 +91,17 @@ function cabinetFromWire(raw: unknown, index: number): Cabinet | null {
   return { id, label, width, height, x, y, color, fixed }
 }
 
-function toWire(plan: Plan): WireStateV1 {
+function normalizeSharedName(raw: unknown): string | null {
+  if (typeof raw !== 'string') return null
+  const trimmed = raw.trim().replace(/\s+/g, ' ')
+  // harte Obergrenze gegen aufgeblähte Share-URLs
+  if (!trimmed || trimmed.length > 120) return trimmed ? trimmed.slice(0, 120).trim() : null
+  return trimmed
+}
+
+function toWire(plan: Plan, name?: string | null): WireStateV1 {
   const { room, cabinets } = plan
+  const n = normalizeSharedName(name ?? null)
   return {
     v: 1,
     r: [
@@ -106,10 +124,11 @@ function toWire(plan: Plan): WireStateV1 {
       c: cab.color,
       ...(cab.fixed ? { f: 1 as const } : {}),
     })),
+    ...(n ? { n } : {}),
   }
 }
 
-function fromWire(data: unknown): Plan | null {
+function fromWire(data: unknown): SharedState | null {
   if (!data || typeof data !== 'object') return null
   const o = data as Record<string, unknown>
   if (o.v !== 1) return null
@@ -122,7 +141,10 @@ function fromWire(data: unknown): Plan | null {
     if (cab) cabinets.push(cab)
   }
 
-  return { room, cabinets }
+  return {
+    plan: { room, cabinets },
+    name: normalizeSharedName(o.n),
+  }
 }
 
 /** UTF-8 safe base64url */
@@ -141,14 +163,14 @@ function decodeBase64Url(value: string): string {
   return new TextDecoder().decode(bytes)
 }
 
-/** Plan → URL-Token */
-export function encodePlanToToken(plan: Plan): string {
-  const json = JSON.stringify(toWire(plan))
+/** Plan (+ optional Name) → URL-Token */
+export function encodePlanToToken(plan: Plan, name?: string | null): string {
+  const json = JSON.stringify(toWire(plan, name))
   return encodeBase64Url(json)
 }
 
-/** URL-Token → Plan (oder null bei Fehler) */
-export function decodePlanFromToken(token: string): Plan | null {
+/** URL-Token → SharedState (oder null bei Fehler) */
+export function decodePlanFromToken(token: string): SharedState | null {
   try {
     const json = decodeBase64Url(token)
     return fromWire(JSON.parse(json))
@@ -173,19 +195,24 @@ function readTokenFromLocation(): string | null {
   return hashParams.get(STATE_PARAM)
 }
 
-/** Liest den Plan aus der aktuellen URL */
-export function loadPlanFromUrl(): Plan | null {
+/** Liest Plan + optionalen Namen aus der aktuellen URL */
+export function loadSharedFromUrl(): SharedState | null {
   const token = readTokenFromLocation()
   if (!token) return null
   return decodePlanFromToken(token)
 }
 
+/** @deprecated Nutze loadSharedFromUrl – bleibt als Plan-only Convenience */
+export function loadPlanFromUrl(): Plan | null {
+  return loadSharedFromUrl()?.plan ?? null
+}
+
 /**
- * Schreibt den Plan in die URL (?s=...), ohne History-Eintrag zu spammen.
+ * Schreibt Plan + Name in die URL (?s=...), ohne History-Eintrag zu spammen.
  * Selection o.ä. bleibt absichtlich draußen – nur sharebarer Inhalt.
  */
-export function writePlanToUrl(plan: Plan): void {
-  const token = encodePlanToToken(plan)
+export function writePlanToUrl(plan: Plan, name?: string | null): void {
+  const token = encodePlanToToken(plan, name)
   const url = new URL(window.location.href)
   url.searchParams.set(STATE_PARAM, token)
   // Hash-Altlast entfernen, damit nicht zwei Quellen konkurrieren
@@ -197,9 +224,9 @@ export function writePlanToUrl(plan: Plan): void {
   }
 }
 
-/** Absoluter Share-Link nur mit Plan-Zustand (?s=…) – ohne Projektmetadaten */
-export function buildShareUrl(plan: Plan): string {
-  const token = encodePlanToToken(plan)
+/** Absoluter Share-Link mit Plan-Zustand und Projektname (?s=…) */
+export function buildShareUrl(plan: Plan, name?: string | null): string {
+  const token = encodePlanToToken(plan, name)
   const url = new URL(window.location.href)
   url.searchParams.set(STATE_PARAM, token)
   url.hash = ''
