@@ -5,6 +5,7 @@ import {
   loadPlanFromUrl,
   writePlanToUrl,
 } from '../urlState'
+import { packValidCabinets } from '../geometry'
 
 function cloneRoom(room: RoomPoints): RoomPoints {
   return {
@@ -75,12 +76,20 @@ export function usePlanner() {
     const cab = plan.value.cabinets.find((c) => c.id === id)
     if (!cab) return
 
+    // Fixierung darf immer umgeschaltet werden
+    if (patch.fixed !== undefined) cab.fixed = patch.fixed
+
+    // Label/Farbe auch bei fixierten Schränken erlauben
     if (patch.label !== undefined) cab.label = patch.label
     if (patch.color !== undefined) cab.color = patch.color
-    if (patch.width !== undefined) cab.width = Math.max(1, finiteOr(patch.width, cab.width))
-    if (patch.height !== undefined) cab.height = Math.max(1, finiteOr(patch.height, cab.height))
-    if (patch.x !== undefined) cab.x = finiteOr(patch.x, cab.x)
-    if (patch.y !== undefined) cab.y = Math.max(0, finiteOr(patch.y, cab.y))
+
+    // Position & Größe nur wenn nicht fixiert
+    if (!cab.fixed) {
+      if (patch.width !== undefined) cab.width = Math.max(1, finiteOr(patch.width, cab.width))
+      if (patch.height !== undefined) cab.height = Math.max(1, finiteOr(patch.height, cab.height))
+      if (patch.x !== undefined) cab.x = finiteOr(patch.x, cab.x)
+      if (patch.y !== undefined) cab.y = Math.max(0, finiteOr(patch.y, cab.y))
+    }
   }
 
   function selectCabinet(id: string | null) {
@@ -98,6 +107,14 @@ export function usePlanner() {
     selectedCabinetId.value = null
   }
 
+  function shiftCabinets(direction: 'left' | 'right') {
+    plan.value.cabinets = packValidCabinets(
+      plan.value.cabinets,
+      plan.value.room,
+      direction,
+    )
+  }
+
   return {
     plan,
     cabinetCount,
@@ -109,5 +126,6 @@ export function usePlanner() {
     selectCabinet,
     updateRoomPoint,
     resetPlan,
+    shiftCabinets,
   }
 }

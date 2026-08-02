@@ -260,31 +260,35 @@ function draw() {
       ctx.strokeRect(rx - 1, ry - 1, rw + 2, rh + 2)
       ctx.setLineDash([])
     } else if (selected) {
-      ctx.strokeStyle = '#f1c40f'
+      ctx.strokeStyle = cab.fixed ? '#7f8c8d' : '#f1c40f'
       ctx.lineWidth = 4
       ctx.strokeRect(rx - 2, ry - 2, rw + 4, rh + 4)
+    } else if (cab.fixed) {
+      ctx.strokeStyle = '#7f8c8d'
+      ctx.lineWidth = 2
+      ctx.setLineDash([4, 3])
+      ctx.strokeRect(rx, ry, rw, rh)
+      ctx.setLineDash([])
     } else {
       ctx.strokeStyle = shade(cab.color, -40)
       ctx.lineWidth = 2
       ctx.strokeRect(rx, ry, rw, rh)
     }
 
-    if (selected && !invalid) {
-      drawHandle(ctx, rx, ry)
-      drawHandle(ctx, rx + rw, ry)
-      drawHandle(ctx, rx, ry + rh)
-      drawHandle(ctx, rx + rw, ry + rh)
-    } else if (selected && invalid) {
-      drawHandle(ctx, rx, ry, '#c0392b')
-      drawHandle(ctx, rx + rw, ry, '#c0392b')
-      drawHandle(ctx, rx, ry + rh, '#c0392b')
-      drawHandle(ctx, rx + rw, ry + rh, '#c0392b')
+    // Handles nur wenn ausgewählt und nicht fixiert
+    if (selected && !cab.fixed) {
+      const handleColor = invalid ? '#c0392b' : '#f1c40f'
+      drawHandle(ctx, rx, ry, handleColor)
+      drawHandle(ctx, rx + rw, ry, handleColor)
+      drawHandle(ctx, rx, ry + rh, handleColor)
+      drawHandle(ctx, rx + rw, ry + rh, handleColor)
     }
 
     if (rw > 40 && rh > 30) {
       ctx.fillStyle = '#fff'
       ctx.font = 'bold 12px system-ui, sans-serif'
-      ctx.fillText(cab.label, rx + 8, ry + 18)
+      const title = cab.fixed ? `🔒 ${cab.label}` : cab.label
+      ctx.fillText(title, rx + 8, ry + 18)
       ctx.font = '11px system-ui, sans-serif'
       ctx.fillStyle = 'rgba(255,255,255,0.9)'
       ctx.fillText(`${cab.width}×${cab.height} cm`, rx + 8, ry + 34)

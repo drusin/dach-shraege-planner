@@ -24,6 +24,7 @@ const emit = defineEmits<{
   updateCabinet: [id: string, patch: Partial<Omit<Cabinet, 'id'>>]
   removeCabinet: [id: string]
   selectCabinet: [id: string | null]
+  shiftCabinets: [direction: 'left' | 'right']
   reset: []
 }>()
 
@@ -51,6 +52,12 @@ const selectedIssueText = computed(() =>
 
 const invalidCount = computed(
   () => props.cabinets.filter((c) => getValidation(c).invalid).length,
+)
+
+/** Gültig, nicht fixiert → werden beim Schieben bewegt */
+const movableCount = computed(
+  () =>
+    props.cabinets.filter((c) => !c.fixed && !getValidation(c).invalid).length,
 )
 
 const snapMode = ref<SnapMode>('left')
@@ -207,6 +214,31 @@ function onSelectedNum(
 
     <h2>Schränke</h2>
 
+    <div class="shift-row">
+      <button
+        type="button"
+        class="btn btn-shift"
+        :disabled="movableCount === 0"
+        title="Gültige, nicht fixierte Schränke möglichst weit nach links"
+        @click="emit('shiftCabinets', 'left')"
+      >
+        ← Nach links schieben
+      </button>
+      <button
+        type="button"
+        class="btn btn-shift"
+        :disabled="movableCount === 0"
+        title="Gültige, nicht fixierte Schränke möglichst weit nach rechts"
+        @click="emit('shiftCabinets', 'right')"
+      >
+        Nach rechts schieben →
+      </button>
+    </div>
+    <p v-if="movableCount > 0" class="shift-hint">
+      {{ movableCount }} bewegliche Schrank/Schränke werden dicht gepackt.
+      Fixierte und ungültige bleiben stehen.
+    </p>
+
     <div v-if="cabinets.length === 0" class="empty">Noch keine Schränke.</div>
 
     <ul v-else class="cabinet-list">
@@ -217,6 +249,7 @@ function onSelectedNum(
         :class="{
           active: cab.id === selectedCabinetId,
           invalid: getValidation(cab).invalid,
+          fixed: !!cab.fixed,
         }"
         @click="emit('selectCabinet', cab.id)"
       >
@@ -224,6 +257,7 @@ function onSelectedNum(
         <span class="cab-meta">
           <strong>
             {{ cab.label }}
+            <span v-if="cab.fixed" class="fixed-tag">fixiert</span>
             <span v-if="getValidation(cab).invalid" class="invalid-tag">
               {{ shortCabinetIssueLabel(getValidation(cab)) || 'ungültig' }}
             </span>
@@ -242,10 +276,25 @@ function onSelectedNum(
     </ul>
 
     <!-- Bearbeitung des gewählten Schranks -->
-    <div v-if="selected" class="edit-panel" :class="{ invalid: selectedInvalid }">
+    <div
+      v-if="selected"
+      class="edit-panel"
+      :class="{ invalid: selectedInvalid, fixed: !!selected.fixed }"
+    >
       <h3>Schrank bearbeiten</h3>
       <p v-if="selectedInvalid" class="invalid-msg">
         ⚠ {{ selectedIssueText }}
+      </p>
+      <label class="check fixed-toggle">
+        <input
+          type="checkbox"
+          :checked="!!selected.fixed"
+          @change="patchSelected({ fixed: ($event.target as HTMLInputElement).checked })"
+        />
+        Position & Größe fixieren
+      </label>
+      <p v-if="selected.fixed" class="fixed-msg">
+        🔒 Fixiert – Position/Größe gesperrt, bleibt beim Schieben stehen.
       </p>
       <div class="field">
         <label>Bezeichnung</label>
@@ -263,6 +312,7 @@ function onSelectedNum(
             :value="selected.width"
             min="1"
             step="1"
+            :disabled="!!selected.fixed"
             @change="onSelectedNum('width', $event)"
             @blur="onSelectedNum('width', $event)"
           />
@@ -274,6 +324,7 @@ function onSelectedNum(
             :value="selected.height"
             min="1"
             step="1"
+            :disabled="!!selected.fixed"
             @change="onSelectedNum('height', $event)"
             @blur="onSelectedNum('height', $event)"
           />
@@ -286,6 +337,7 @@ function onSelectedNum(
             type="number"
             :value="selected.x"
             step="1"
+            :disabled="!!selected.fixed"
             @change="onSelectedNum('x', $event)"
             @blur="onSelectedNum('x', $event)"
           />
@@ -297,6 +349,7 @@ function onSelectedNum(
             :value="selected.y"
             min="0"
             step="1"
+            :disabled="!!selected.fixed"
             @change="onSelectedNum('y', $event)"
             @blur="onSelectedNum('y', $event)"
           />
@@ -479,6 +532,34 @@ h3 {
   margin: 8px 0 12px;
 }
 
+.shift-row {
+  display: flex;
+  gap: 8px;
+  margin: 8px 0 6px;
+}
+
+.btn-shift {
+  flex: 1;
+  background: #34495e;
+  color: #fff;
+  padding: 8px 6px;
+  font-size: 12px;
+}
+.btn-shift:hover:not(:disabled) {
+  background: #2c3e50;
+}
+.btn-shift:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.shift-hint {
+  margin: 0 0 10px;
+  font-size: 11px;
+  color: #888;
+  line-height: 1.35;
+}
+
 .cabinet-list {
   list-style: none;
   margin: 10px 0 12px;
@@ -518,6 +599,55 @@ h3 {
 .cabinet-item.invalid.active {
   border-color: #c0392b;
   box-shadow: inset 0 0 0 1px #c0392b;
+}
+
+.cabinet-item.fixed {
+  border-style: dashed;
+}
+
+.fixed-tag {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 0 5px;
+  border-radius: 3px;
+  background: #7f8c8d;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  vertical-align: middle;
+  text-transform: uppercase;
+}
+
+.check.fixed-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #2c3e50;
+  cursor: pointer;
+  text-transform: none;
+}
+
+.check.fixed-toggle input {
+  width: auto;
+  margin: 0;
+  accent-color: #7f8c8d;
+}
+
+.fixed-msg {
+  margin: 0 0 10px;
+  padding: 8px 10px;
+  border-radius: 4px;
+  background: #eaecee;
+  color: #4d5656;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.edit-panel.fixed {
+  border-color: #95a5a6;
 }
 
 .invalid-tag {

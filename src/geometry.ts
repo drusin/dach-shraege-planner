@@ -262,3 +262,134 @@ export function resolveCabinetPlacement(
   const centerX = roundCm((minX + maxX) / 2 - width / 2)
   return { x: centerX, y }
 }
+
+/**
+ * Sucht die extremste gültige x-Position in [lo, hi].
+ * left  → kleinstes x
+ * right → größtes x
+ *
+ * Kandidaten (Kanten) + dichter Scan – es wird immer das Extremum gewählt,
+ * nicht der erste zufällig gültige Kandidat (sonst „Springen“ an Fixpunkte).
+ */
+function findExtremeValidX(
+  probe: Cabinet,
+  room: RoomPoints,
+  others: Cabinet[],
+  lo: number,
+  hi: number,
+  direction: 'left' | 'right',
+  step: number,
+): number | null {
+  if (hi < lo - EPS) return null
+
+  const loR = roundCm(lo)
+  const hiR = roundCm(hi)
+
+  // Kandidaten: Intervallenden + Andocken an Hindernisse
+  const candidates = new Set<number>([loR, hiR])
+  for (const o of others) {
+    candidates.add(roundCm(o.x + o.width))
+    candidates.add(roundCm(o.x - probe.width))
+  }
+
+  let best: number | null = null
+  const consider = (x: number) => {
+    const xr = roundCm(Math.min(hiR, Math.max(loR, x)))
+    if (xr < loR - EPS || xr > hiR + EPS) return
+    probe.x = xr
+    if (!isPlacementValid(probe, room, others)) return
+    if (
+      best === null ||
+      (direction === 'left' ? xr < best : xr > best)
+    ) {
+      best = xr
+    }
+  }
+
+  for (const x of candidates) consider(x)
+
+  // Dichter Scan über das erlaubte Intervall (für Positionen unter der Schräge)
+  for (let x = loR; x <= hiR + EPS; x += step) {
+    consider(x)
+  }
+  consider(hiR)
+
+  return best
+}
+
+/**
+ * Schiebt alle aktuell gültigen, nicht fixierten Schränke möglichst weit
+ * nach links bzw. rechts.
+ *
+ * - Fixierte + ungültige bleiben stehen (Hindernisse)
+ * - Links→Rechts-Reihenfolge der beweglichen Schränke bleibt strikt erhalten
+ *   (Cursor-Grenze verhindert Überholen, z.B. unter der Schräge)
+ * - y bleibt unverändert
+ */
+export function packValidCabinets(
+  cabinets: Cabinet[],
+  room: RoomPoints,
+  direction: 'left' | 'right',
+  step = 1,
+): Cabinet[] {
+  const result = cabinets.map((c) => ({ ...c }))
+
+  // Immer in visueller Links→Rechts-Reihenfolge arbeiten
+  const movable = result
+    .filter((c) => !c.fixed && !validateCabinet(c, room, result).invalid)
+    .sort((a, b) => a.x - b.x || a.id.localeCompare(b.id))
+
+  if (movable.length === 0) return result
+
+  // Bewegliche aus dem Weg; Platzierung von der Zielseite her
+  const parked = new Set(movable.map((c) => c.id))
+  const obstacles = () => result.filter((c) => !parked.has(c.id))
+
+  const { p0, pEnd } = getVirtualCorners(room)
+  const roomMinX = Math.min(p0.x, pEnd.x)
+  const roomMaxX = Math.max(p0.x, pEnd.x)
+
+  // Cursor erzwingt Reihenfolge:
+  // left:  nächster Schrank startet erst rechts vom vorigen (x >= prev.x+prev.w)
+  // right: nächster Schrank endet erst links vom vorigen (x+w <= prev.x)
+  let cursorMinX = -Infinity
+  let cursorMaxRight = Infinity
+
+  const order = direction === 'left' ? movable : [...movable].reverse()
+
+  for (const cab of order) {
+    const others = obstacles()
+    const width = cab.width
+    const height = cab.height
+    const y = cab.y
+    const maxLeft = roomMaxX - width
+
+    let lo = roomMinX
+    let hi = maxLeft
+    if (direction === 'left') {
+      lo = Math.max(lo, cursorMinX)
+    } else {
+      hi = Math.min(hi, cursorMaxRight - width)
+    }
+
+    const probe: Cabinet = { ...cab, x: cab.x, y, width, height }
+    const best = findExtremeValidX(probe, room, others, lo, hi, direction, step)
+
+    const target = result.find((c) => c.id === cab.id)
+    if (target) {
+      if (best !== null) {
+        target.x = best
+      }
+      // Cursor auch bei unveränderter Position fortschreiben
+      if (direction === 'left') {
+        cursorMinX = target.x + target.width
+      } else {
+        cursorMaxRight = target.x
+      }
+    }
+
+    parked.delete(cab.id)
+  }
+
+  return result
+}

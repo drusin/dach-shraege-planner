@@ -13,6 +13,7 @@ const {
   selectCabinet,
   updateRoomPoint,
   resetPlan,
+  shiftCabinets,
 } = usePlanner()
 </script>
 
@@ -35,6 +36,7 @@ const {
         @update-cabinet="updateCabinet"
         @remove-cabinet="removeCabinet"
         @select-cabinet="selectCabinet"
+        @shift-cabinets="shiftCabinets"
         @reset="resetPlan"
       />
       <PlannerCanvas

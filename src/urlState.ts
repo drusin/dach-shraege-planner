@@ -26,6 +26,8 @@ interface WireCabinetV1 {
   y: number
   /** color */
   c: string
+  /** fixed (1 = true, omitted = false) */
+  f?: 1
 }
 
 interface WireStateV1 {
@@ -75,7 +77,9 @@ function cabinetFromWire(raw: unknown, index: number): Cabinet | null {
       : `#${o.c}`
     : '#2980b9'
 
-  return { id, label, width, height, x, y, color }
+  const fixed = o.f === 1 || o.f === true
+
+  return { id, label, width, height, x, y, color, fixed }
 }
 
 function toWire(plan: Plan): WireStateV1 {
@@ -100,6 +104,7 @@ function toWire(plan: Plan): WireStateV1 {
       x: cab.x,
       y: cab.y,
       c: cab.color,
+      ...(cab.fixed ? { f: 1 as const } : {}),
     })),
   }
 }
