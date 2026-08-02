@@ -44,7 +44,12 @@ function projectToState(project: Project) {
 }
 
 export function usePlanner() {
-  const boot = bootstrapProject(loadSharedFromUrl())
+  // Frisches Projekt = allererster Start ohne Share-Link (noch keine Projekte)
+  // oder später explizit „Neu“. Dann Raum-Sektion aufklappen.
+  const sharedAtBoot = loadSharedFromUrl()
+  const storeWasEmpty = listProjectSummaries().length === 0
+  const boot = bootstrapProject(sharedAtBoot)
+  const preferRoomSectionOpen = ref(storeWasEmpty && !sharedAtBoot)
 
   const projectId = ref(boot.id)
   const projectName = ref(boot.name)
@@ -447,6 +452,7 @@ export function usePlanner() {
     flushPersist()
     const created = createNewProject(DEFAULT_PROJECT_NAME)
     applyProject(created)
+    preferRoomSectionOpen.value = true
   }
 
   function copyProject() {
@@ -461,6 +467,7 @@ export function usePlanner() {
     }
     const copy = duplicateProject(source)
     applyProject(copy)
+    preferRoomSectionOpen.value = false
   }
 
   function openProject(id: string): boolean {
@@ -470,6 +477,7 @@ export function usePlanner() {
     const loaded = loadProject(id)
     if (!loaded) return false
     applyProject(loaded)
+    preferRoomSectionOpen.value = false
     return true
   }
 
@@ -483,6 +491,7 @@ export function usePlanner() {
     projectUpdatedAt,
     projectList,
     nameError,
+    preferRoomSectionOpen,
     canUndo,
     canRedo,
     shareStatus,

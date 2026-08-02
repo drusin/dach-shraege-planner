@@ -24,6 +24,8 @@ const props = defineProps<{
   canUndo: boolean
   canRedo: boolean
   shareStatus: string | null
+  /** true = Raum-Sektion aufklappen (frisches Projekt / „Neu“) */
+  preferRoomSectionOpen: boolean
 }>()
 
 const emit = defineEmits<{
@@ -48,6 +50,24 @@ const emit = defineEmits<{
 
 const nameDraft = ref(props.projectName)
 const showLoadDialog = ref(false)
+/** Raum-Sektion: zu, außer bei frischem Projekt */
+const roomSectionOpen = ref(!!props.preferRoomSectionOpen)
+
+// Bei Projektwechsel: aufklappen nur wenn frisches/neues Projekt, sonst zu
+watch(
+  () => [props.projectId, props.preferRoomSectionOpen] as const,
+  ([, prefer]) => {
+    roomSectionOpen.value = !!prefer
+  },
+)
+
+function onShiftCabinets(direction: 'left' | 'right') {
+  emit('shiftCabinets', direction)
+  // Mobile: Menü nach dem Schieben schließen, damit das Ergebnis sichtbar ist
+  if (typeof window !== 'undefined' && window.matchMedia('(max-width: 900px)').matches) {
+    emit('closePanel')
+  }
+}
 
 watch(
   () => props.projectName,
@@ -384,81 +404,95 @@ function onSelectedXRight(event: Event) {
 
     <hr />
 
-    <h2>Raum von der Seite</h2>
-    <p class="hint">
-      Pfad: <strong>P0 → P1 → P2 → P3 → P4 → PEnd</strong><br />
-      P0/PEnd virtuell (immer h=0).<br />
-      Alle Maße in <strong>cm</strong>.
-    </p>
+    <section class="collapsible-section">
+      <button
+        type="button"
+        class="section-toggle"
+        :aria-expanded="roomSectionOpen"
+        aria-controls="room-section-body"
+        @click="roomSectionOpen = !roomSectionOpen"
+      >
+        <h2>Raum von der Seite</h2>
+        <span class="section-chevron" aria-hidden="true">{{ roomSectionOpen ? '▾' : '▸' }}</span>
+      </button>
 
-    <div class="diagram" aria-hidden="true">
-      <svg viewBox="0 0 160 80" width="100%" height="80">
-        <rect x="0" y="62" width="160" height="18" fill="#8b5a2b" />
-        <polygon
-          points="12,62 12,48 40,12 100,12 128,48 128,62"
-          fill="#fff8e6"
-          stroke="#2c3e50"
-          stroke-width="1.5"
-        />
-        <line x1="12" y1="62" x2="12" y2="48" stroke="#2c3e50" stroke-width="2.5" />
-        <line x1="12" y1="48" x2="40" y2="12" stroke="#c0392b" stroke-width="3" />
-        <line x1="40" y1="12" x2="100" y2="12" stroke="#2c3e50" stroke-width="2.5" />
-        <line x1="100" y1="12" x2="128" y2="48" stroke="#c0392b" stroke-width="3" />
-        <line x1="128" y1="48" x2="128" y2="62" stroke="#2c3e50" stroke-width="2.5" />
-        <circle cx="12" cy="62" r="3.5" fill="#7f8c8d" />
-        <circle cx="12" cy="48" r="3.5" fill="#e74c3c" />
-        <circle cx="40" cy="12" r="3.5" fill="#e74c3c" />
-        <circle cx="100" cy="12" r="3.5" fill="#e74c3c" />
-        <circle cx="128" cy="48" r="3.5" fill="#e74c3c" />
-        <circle cx="128" cy="62" r="3.5" fill="#7f8c8d" />
-        <text x="16" y="70" font-size="8" fill="#555">P0</text>
-        <text x="16" y="50" font-size="8" fill="#333" font-weight="bold">P1</text>
-        <text x="42" y="10" font-size="8" fill="#333" font-weight="bold">P2</text>
-        <text x="102" y="10" font-size="8" fill="#333" font-weight="bold">P3</text>
-        <text x="132" y="50" font-size="8" fill="#333" font-weight="bold">P4</text>
-        <text x="132" y="70" font-size="8" fill="#555">PEnd</text>
-      </svg>
-    </div>
+      <div v-show="roomSectionOpen" id="room-section-body" class="section-body">
+        <p class="hint">
+          Pfad: <strong>P0 → P1 → P2 → P3 → P4 → PEnd</strong><br />
+          P0/PEnd virtuell (immer h=0).<br />
+          Alle Maße in <strong>cm</strong>.
+        </p>
 
-    <div class="point-group virtual">
-      <h3><span class="badge grey">P0</span> virt. unten links</h3>
-      <div class="readonly">x = {{ virtual.p0.x }} cm · h = 0 cm (fix)</div>
-    </div>
-
-    <div v-for="key in pointKeys" :key="key" class="point-group">
-      <h3>
-        <span class="badge">{{ key.toUpperCase() }}</span>
-        {{ ROOM_POINT_LABELS[key] }}
-      </h3>
-      <div class="field-row">
-        <div class="field">
-          <label>x (cm)</label>
-          <input
-            type="number"
-            :value="room[key].x"
-            step="5"
-            @change="onPointX(key, $event)"
-            @blur="onPointX(key, $event)"
-          />
+        <div class="diagram" aria-hidden="true">
+          <svg viewBox="0 0 160 80" width="100%" height="80">
+            <rect x="0" y="62" width="160" height="18" fill="#8b5a2b" />
+            <polygon
+              points="12,62 12,48 40,12 100,12 128,48 128,62"
+              fill="#fff8e6"
+              stroke="#2c3e50"
+              stroke-width="1.5"
+            />
+            <line x1="12" y1="62" x2="12" y2="48" stroke="#2c3e50" stroke-width="2.5" />
+            <line x1="12" y1="48" x2="40" y2="12" stroke="#c0392b" stroke-width="3" />
+            <line x1="40" y1="12" x2="100" y2="12" stroke="#2c3e50" stroke-width="2.5" />
+            <line x1="100" y1="12" x2="128" y2="48" stroke="#c0392b" stroke-width="3" />
+            <line x1="128" y1="48" x2="128" y2="62" stroke="#2c3e50" stroke-width="2.5" />
+            <circle cx="12" cy="62" r="3.5" fill="#7f8c8d" />
+            <circle cx="12" cy="48" r="3.5" fill="#e74c3c" />
+            <circle cx="40" cy="12" r="3.5" fill="#e74c3c" />
+            <circle cx="100" cy="12" r="3.5" fill="#e74c3c" />
+            <circle cx="128" cy="48" r="3.5" fill="#e74c3c" />
+            <circle cx="128" cy="62" r="3.5" fill="#7f8c8d" />
+            <text x="16" y="70" font-size="8" fill="#555">P0</text>
+            <text x="16" y="50" font-size="8" fill="#333" font-weight="bold">P1</text>
+            <text x="42" y="10" font-size="8" fill="#333" font-weight="bold">P2</text>
+            <text x="102" y="10" font-size="8" fill="#333" font-weight="bold">P3</text>
+            <text x="132" y="50" font-size="8" fill="#333" font-weight="bold">P4</text>
+            <text x="132" y="70" font-size="8" fill="#555">PEnd</text>
+          </svg>
         </div>
-        <div class="field">
-          <label>h vom Boden (cm)</label>
-          <input
-            type="number"
-            :value="room[key].y"
-            min="0"
-            step="5"
-            @change="onPointY(key, $event)"
-            @blur="onPointY(key, $event)"
-          />
+
+        <div class="point-group virtual">
+          <h3><span class="badge grey">P0</span> virt. unten links</h3>
+          <div class="readonly">x = {{ virtual.p0.x }} cm · h = 0 cm (fix)</div>
+        </div>
+
+        <div v-for="key in pointKeys" :key="key" class="point-group">
+          <h3>
+            <span class="badge">{{ key.toUpperCase() }}</span>
+            {{ ROOM_POINT_LABELS[key] }}
+          </h3>
+          <div class="field-row">
+            <div class="field">
+              <label>x (cm)</label>
+              <input
+                type="number"
+                :value="room[key].x"
+                step="5"
+                @change="onPointX(key, $event)"
+                @blur="onPointX(key, $event)"
+              />
+            </div>
+            <div class="field">
+              <label>h vom Boden (cm)</label>
+              <input
+                type="number"
+                :value="room[key].y"
+                min="0"
+                step="5"
+                @change="onPointY(key, $event)"
+                @blur="onPointY(key, $event)"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div class="point-group virtual">
+          <h3><span class="badge grey">PEnd</span> virt. unten rechts</h3>
+          <div class="readonly">x = {{ virtual.pEnd.x }} cm · h = 0 cm (fix)</div>
         </div>
       </div>
-    </div>
-
-    <div class="point-group virtual">
-      <h3><span class="badge grey">PEnd</span> virt. unten rechts</h3>
-      <div class="readonly">x = {{ virtual.pEnd.x }} cm · h = 0 cm (fix)</div>
-    </div>
+    </section>
 
     <hr />
 
@@ -470,7 +504,7 @@ function onSelectedXRight(event: Event) {
         class="btn btn-shift"
         :disabled="movableCount === 0"
         title="Gültige, nicht fixierte Schränke möglichst weit nach links"
-        @click="emit('shiftCabinets', 'left')"
+        @click="onShiftCabinets('left')"
       >
         ← Nach links schieben
       </button>
@@ -479,7 +513,7 @@ function onSelectedXRight(event: Event) {
         class="btn btn-shift"
         :disabled="movableCount === 0"
         title="Gültige, nicht fixierte Schränke möglichst weit nach rechts"
-        @click="emit('shiftCabinets', 'right')"
+        @click="onShiftCabinets('right')"
       >
         Nach rechts schieben →
       </button>
@@ -758,6 +792,42 @@ h2 {
   margin: 0 0 4px;
   font-size: 16px;
   color: #2c3e50;
+}
+
+.collapsible-section {
+  margin: 0;
+}
+
+.section-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  color: inherit;
+  font: inherit;
+}
+
+.section-toggle h2 {
+  margin: 0;
+  flex: 1;
+}
+
+.section-chevron {
+  flex-shrink: 0;
+  font-size: 14px;
+  color: #7f8c8d;
+  line-height: 1;
+}
+
+.section-body {
+  margin-top: 4px;
 }
 
 h3 {

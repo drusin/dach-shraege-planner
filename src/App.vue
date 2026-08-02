@@ -34,6 +34,7 @@ const {
   beginCoalesce,
   endCoalesce,
   copyShareLink,
+  preferRoomSectionOpen,
 } = usePlanner()
 
 const controlsOpen = ref(false)
@@ -133,6 +134,7 @@ onUnmounted(() => {
           :can-undo="canUndo"
           :can-redo="canRedo"
           :share-status="shareStatus"
+          :prefer-room-section-open="preferRoomSectionOpen"
           @update-room-point="updateRoomPoint"
           @add-cabinet="addCabinet"
           @update-cabinet="updateCabinet"
